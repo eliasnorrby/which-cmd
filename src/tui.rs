@@ -8,27 +8,27 @@ use crossterm::{
     ExecutableCommand,
 };
 
-use std::io::Write;
+use std::io::{Stderr, Write};
 
 struct Output {
-    stdout: std::io::Stdout,
+    stderr: Stderr,
 }
 
 impl Output {
     fn new() -> Self {
         Output {
-            stdout: std::io::stdout(),
+            stderr: std::io::stderr(),
         }
     }
 
     fn write_line(&mut self, args: std::fmt::Arguments) -> std::io::Result<()> {
-        self.stdout.write_fmt(args)?;
+        self.stderr.write_fmt(args)?;
         self.blank_line()?;
         Ok(())
     }
 
     fn blank_line(&mut self) -> std::io::Result<()> {
-        self.stdout.write_all(b"\r\n")?;
+        self.stderr.write_all(b"\r\n")?;
         Ok(())
     }
 }
@@ -49,8 +49,8 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
 
     loop {
         // Clear the screen
-        output.stdout.execute(terminal::Clear(ClearType::All))?;
-        output.stdout.execute(cursor::MoveTo(0, 0))?;
+        output.stderr.execute(terminal::Clear(ClearType::All))?;
+        output.stderr.execute(cursor::MoveTo(0, 0))?;
 
         output_write_line!(
             output,
@@ -84,7 +84,7 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
             }
         }
 
-        output.stdout.flush()?;
+        output.stderr.flush()?;
 
         // Wait for an event
         if let Event::Key(event) = event::read()? {
@@ -102,8 +102,8 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                             // Build and return the command
                             let command = compose_command(&path);
                             terminal::disable_raw_mode()?;
-                            output.stdout.execute(terminal::Clear(ClearType::All))?;
-                            output.stdout.execute(cursor::MoveTo(0, 0))?;
+                            output.stderr.execute(terminal::Clear(ClearType::All))?;
+                            output.stderr.execute(cursor::MoveTo(0, 0))?;
                             return Ok(command);
                         } else {
                             current_nodes = &node.keys;
@@ -111,7 +111,7 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                     } else {
                         // Invalid key pressed
                         output_write_line!(output, "\nInvalid key: {}", c)?;
-                        output.stdout.flush()?;
+                        output.stderr.flush()?;
                         std::thread::sleep(std::time::Duration::from_secs(1));
                     }
                 }
