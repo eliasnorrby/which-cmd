@@ -102,6 +102,8 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                             // Build and return the command
                             let command = compose_command(&path);
                             terminal::disable_raw_mode()?;
+                            output.stdout.execute(terminal::Clear(ClearType::All))?;
+                            output.stdout.execute(cursor::MoveTo(0, 0))?;
                             return Ok(command);
                         } else {
                             current_nodes = &node.keys;
