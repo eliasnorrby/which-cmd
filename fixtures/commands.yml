@@ -19,6 +19,25 @@ keys:
       - key: c
         name: checkout
         value: checkout
+      - key: r
+        name: rebase
+        value: rebase
+        keys:
+          - key: i
+            name: interactive
+            value: -i
+          - key: o
+            name: origin
+            value: origin/master
+          - key: O
+            name: onto
+            value: --onto
+          - key: c
+            name: continue
+            value: --continue
+          - key: a
+            name: abort
+            value: --abort
       - key: h
         name: GitHub
         value: gh
