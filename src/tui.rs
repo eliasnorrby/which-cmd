@@ -40,18 +40,38 @@ macro_rules! output_write_line {
     }
 }
 
+// TODO: Error handling
+fn clear_screen(output: &mut Output) -> std::io::Result<()> {
+    output.stderr.execute(terminal::Clear(ClearType::All))?;
+    output.stderr.execute(cursor::MoveTo(0, 0))?;
+    Ok(())
+}
+
+fn setup(output: &mut Output) -> std::io::Result<()> {
+    terminal::enable_raw_mode()?;
+    output.stderr.execute(cursor::Hide)?;
+    clear_screen(output)?;
+    Ok(())
+}
+
+fn teardown(output: &mut Output) -> std::io::Result<()> {
+    clear_screen(output)?;
+    output.stderr.execute(cursor::Show)?;
+    terminal::disable_raw_mode()?;
+    Ok(())
+}
+
 pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
     // Initialize terminal
-    terminal::enable_raw_mode()?;
     let mut output = Output::new();
+
+    setup(&mut output)?;
 
     let mut current_nodes = &config.keys;
     let mut path: Vec<&CommandNode> = Vec::new();
 
     loop {
-        // Clear the screen
-        output.stderr.execute(terminal::Clear(ClearType::All))?;
-        output.stderr.execute(cursor::MoveTo(0, 0))?;
+        clear_screen(&mut output)?;
 
         // Display the current path
         if !path.is_empty() {
@@ -92,10 +112,7 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
         if let Event::Key(event) = event::read()? {
             match event.code {
                 KeyCode::Char('q') => {
-                    // Exit without outputting a command
-                    output.stderr.execute(terminal::Clear(ClearType::All))?;
-                    output.stderr.execute(cursor::MoveTo(0, 0))?;
-                    terminal::disable_raw_mode()?;
+                    teardown(&mut output)?;
                     return Ok("".into());
                 }
                 KeyCode::Char(c) => {
@@ -105,9 +122,7 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                         if node.is_leaf() {
                             // Build and return the command
                             let command = compose_command(&path);
-                            output.stderr.execute(terminal::Clear(ClearType::All))?;
-                            output.stderr.execute(cursor::MoveTo(0, 0))?;
-                            terminal::disable_raw_mode()?;
+                            teardown(&mut output)?;
                             return Ok(command);
                         } else {
                             current_nodes = &node.keys;
