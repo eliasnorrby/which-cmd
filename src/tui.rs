@@ -92,6 +92,8 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
             match event.code {
                 KeyCode::Char('q') => {
                     // Exit without outputting a command
+                    output.stderr.execute(terminal::Clear(ClearType::All))?;
+                    output.stderr.execute(cursor::MoveTo(0, 0))?;
                     terminal::disable_raw_mode()?;
                     return Err("User quit the application".into());
                 }
@@ -102,9 +104,9 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                         if node.is_leaf() {
                             // Build and return the command
                             let command = compose_command(&path);
-                            terminal::disable_raw_mode()?;
                             output.stderr.execute(terminal::Clear(ClearType::All))?;
                             output.stderr.execute(cursor::MoveTo(0, 0))?;
+                            terminal::disable_raw_mode()?;
                             return Ok(command);
                         } else {
                             current_nodes = &node.keys;
