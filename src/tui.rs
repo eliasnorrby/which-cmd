@@ -95,7 +95,7 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                     output.stderr.execute(terminal::Clear(ClearType::All))?;
                     output.stderr.execute(cursor::MoveTo(0, 0))?;
                     terminal::disable_raw_mode()?;
-                    return Err("User quit the application".into());
+                    return Ok("".into());
                 }
                 KeyCode::Char(c) => {
                     // Handle character input
