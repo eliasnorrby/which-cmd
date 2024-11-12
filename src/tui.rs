@@ -54,7 +54,7 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
 
         output_write_line!(
             output,
-            "Press a key to select an option, Backspace to go back, or 'q' to quit."
+            "Press a key to select an option, 'backspace' to go back, or 'q' to quit."
         )?;
         output.blank_line()?;
 
