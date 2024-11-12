@@ -53,7 +53,7 @@ fn print_shell_integration(shell: &str) -> Result<(), Box<dyn Error>> {
 # which-cmd Integration for zsh
 which_cmd_widget() {{
     local result
-    result=$(which-cmd 2> /dev/null)
+    result=$(<$TTY which-cmd)
     if [[ $? -eq 0 ]]; then
         LBUFFER+="$result"
     fi
