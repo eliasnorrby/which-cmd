@@ -8,45 +8,83 @@ use crossterm::{
     ExecutableCommand,
 };
 
-use std::io::{stdout, Write};
+use std::io::Write;
+
+struct Output {
+    stdout: std::io::Stdout,
+}
+
+impl Output {
+    fn new() -> Self {
+        Output {
+            stdout: std::io::stdout(),
+        }
+    }
+
+    fn write_line(&mut self, args: std::fmt::Arguments) -> std::io::Result<()> {
+        self.stdout.write_fmt(args)?;
+        self.blank_line()?;
+        Ok(())
+    }
+
+    fn blank_line(&mut self) -> std::io::Result<()> {
+        self.stdout.write_all(b"\r\n")?;
+        Ok(())
+    }
+}
+
+macro_rules! output_write_line {
+    ($output:expr, $($arg:tt)*) => {
+        $output.write_line(format_args!($($arg)*))
+    }
+}
 
 pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
     // Initialize terminal
     terminal::enable_raw_mode()?;
-    let mut stdout = stdout();
+    let mut output = Output::new();
 
     let mut current_nodes = &config.keys;
     let mut path: Vec<&CommandNode> = Vec::new();
 
     loop {
         // Clear the screen
-        stdout.execute(terminal::Clear(ClearType::All))?;
-        stdout.execute(cursor::MoveTo(0, 0))?;
+        output.stdout.execute(terminal::Clear(ClearType::All))?;
+        output.stdout.execute(cursor::MoveTo(0, 0))?;
+
+        output_write_line!(
+            output,
+            "Press a key to select an option, Backspace to go back, or 'q' to quit."
+        )?;
+        output.blank_line()?;
 
         // Display the current path
         if !path.is_empty() {
             let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
-            writeln!(stdout, "Keys pressed: {}\n", keys_pressed.join(" > "))?;
+            output_write_line!(output, "Keys pressed: {}", keys_pressed.join(" > "))?;
+            output.blank_line()?;
         } else {
-            writeln!(stdout, "Available comands:\n")?;
+            output_write_line!(output, "Available comands:")?;
+            output.blank_line()?;
         }
 
         // Display the options
         for node in current_nodes {
             let sub_keys_count = node.keys.len();
             if sub_keys_count > 0 {
-                writeln!(stdout, "{}\t{}\t+{}", node.key, node.name, sub_keys_count)?;
+                output_write_line!(
+                    output,
+                    "{:<3} {:<15} +{}",
+                    node.key,
+                    node.name,
+                    sub_keys_count
+                )?;
             } else {
-                writeln!(stdout, "{}\t{}", node.key, node.name)?;
+                output_write_line!(output, "{:<3} {:<15}", node.key, node.name)?;
             }
         }
 
-        writeln!(
-            stdout,
-            "\nPress a key to select an option, Backspace to go back, or 'q' to quit."
-        )?;
-
-        stdout.flush()?;
+        output.stdout.flush()?;
 
         // Wait for an event
         if let Event::Key(event) = event::read()? {
@@ -70,8 +108,8 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                         }
                     } else {
                         // Invalid key pressed
-                        writeln!(stdout, "\nInvalid key: {}", c)?;
-                        stdout.flush()?;
+                        output_write_line!(output, "\nInvalid key: {}", c)?;
+                        output.stdout.flush()?;
                         std::thread::sleep(std::time::Duration::from_secs(1));
                     }
                 }
