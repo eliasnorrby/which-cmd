@@ -145,3 +145,58 @@ fn compose_command(path: &[&CommandNode]) -> String {
     }
     command_parts.join(" ")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::command_node::CommandNode;
+
+    #[test]
+    fn test_compose_command_no_reset() {
+        let node1 = CommandNode {
+            key: "g".into(),
+            name: "git".into(),
+            value: "git".into(),
+            reset: false,
+            keys: vec![],
+        };
+        let node2 = CommandNode {
+            key: "s".into(),
+            name: "status".into(),
+            value: "status".into(),
+            reset: false,
+            keys: vec![],
+        };
+        let path = vec![&node1, &node2];
+        let command = compose_command(&path);
+        assert_eq!(command, "git status");
+    }
+
+    #[test]
+    fn test_compose_command_with_reset() {
+        let node1 = CommandNode {
+            key: "g".into(),
+            name: "git".into(),
+            value: "git".into(),
+            reset: false,
+            keys: vec![],
+        };
+        let node2 = CommandNode {
+            key: "h".into(),
+            name: "GitHub".into(),
+            value: "gh".into(),
+            reset: true,
+            keys: vec![],
+        };
+        let node3 = CommandNode {
+            key: "p".into(),
+            name: "pull request".into(),
+            value: "pr".into(),
+            reset: false,
+            keys: vec![],
+        };
+        let path = vec![&node1, &node2, &node3];
+        let command = compose_command(&path);
+        assert_eq!(command, "gh pr");
+    }
+}
