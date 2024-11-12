@@ -22,6 +22,7 @@ impl Output {
     }
 
     fn write_line(&mut self, args: std::fmt::Arguments) -> std::io::Result<()> {
+        self.stderr.write_all(b" ")?;
         self.stderr.write_fmt(args)?;
         self.blank_line()?;
         Ok(())
