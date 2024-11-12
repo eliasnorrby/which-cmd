@@ -52,18 +52,19 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
         output.stderr.execute(terminal::Clear(ClearType::All))?;
         output.stderr.execute(cursor::MoveTo(0, 0))?;
 
-        output_write_line!(
-            output,
-            "Press a key to select an option, 'backspace' to go back, or 'q' to quit."
-        )?;
-        output.blank_line()?;
-
         // Display the current path
         if !path.is_empty() {
+            output_write_line!(output, "Command: {}", compose_command(&path))?;
+            output.blank_line()?;
             let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
             output_write_line!(output, "Keys pressed: {}", keys_pressed.join(" > "))?;
             output.blank_line()?;
         } else {
+            output_write_line!(
+                output,
+                "Press a key to select an option, 'backspace' to go back, or 'q' to quit."
+            )?;
+            output.blank_line()?;
             output_write_line!(output, "Available comands:")?;
             output.blank_line()?;
         }
