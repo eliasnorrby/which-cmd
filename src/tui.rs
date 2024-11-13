@@ -90,8 +90,27 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
             output.blank_line()?;
         }
 
-        // Display the options
-        for node in current_nodes {
+        // Sort the nodes by key
+        let mut sorted_nodes = current_nodes.to_vec();
+        sorted_nodes.sort_by(|a, b| {
+            let a_key_lower = a.key.to_lowercase();
+            let b_key_lower = b.key.to_lowercase();
+            match a_key_lower.cmp(&b_key_lower) {
+                std::cmp::Ordering::Equal => {
+                    let a_is_lower = a.key.chars().next().unwrap().is_lowercase();
+                    let b_is_lower = b.key.chars().next().unwrap().is_lowercase();
+                    match (a_is_lower, b_is_lower) {
+                        (true, false) => std::cmp::Ordering::Less,
+                        (false, true) => std::cmp::Ordering::Greater,
+                        _ => a.key.cmp(&b.key),
+                    }
+                }
+                other => other,
+            }
+        });
+
+        // Display the sorted options
+        for node in &sorted_nodes {
             let sub_keys_count = node.keys.len();
             if sub_keys_count > 0 {
                 output_write_line!(

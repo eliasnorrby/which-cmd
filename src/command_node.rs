@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CommandNode {
     pub key: String,
     pub name: String,
