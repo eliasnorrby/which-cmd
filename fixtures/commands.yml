@@ -1,26 +1,20 @@
 keys:
   - key: g
-    name: git
     value: git
     keys:
       - key: s
-        name: status
         value: status
       - key: d
-        name: diff
         value: diff
       - key: b
-        name: branch
         value: branch
         keys:
           - key: m
             name: rename
             value: -m
       - key: c
-        name: checkout
         value: checkout
       - key: r
-        name: rebase
         value: rebase
         keys:
           - key: i
@@ -48,22 +42,16 @@ keys:
             value: pr
             keys:
               - key: c
-                name: create
                 value: create
               - key: C
-                name: checkout
                 value: checkout
               - key: v
-                name: view
                 value: view
               - key: l
-                name: list
                 value: list
           - key: b
-            name: browse
             value: browse
   - key: d
-    name: date
     value: date
     keys:
       - key: t
