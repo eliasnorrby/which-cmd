@@ -51,7 +51,7 @@ keys:
                 value: list
           - key: b
             value: browse
-  - key: d
+  - key: D
     value: date
     keys:
       - key: t
@@ -70,3 +70,20 @@ keys:
       - key: t
         name: filter by test name
         value: -t
+  - key: c
+    value: cargo
+    keys:
+      - key: r
+        value: run
+      - key: b
+        value: build
+  - key: d
+    value: docker
+    keys:
+      - key: i
+        value: image
+        keys:
+          - key: l
+            value: ls
+      - key: r
+        value: run
