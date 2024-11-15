@@ -34,6 +34,10 @@ impl<'de> Deserialize<'de> for CommandNode {
         let value = helper.value.unwrap_or_else(|| "".to_string());
         let name = helper.name.unwrap_or_else(|| value.clone());
 
+        if name.is_empty() {
+            return Err(serde::de::Error::custom("name must not be empty"));
+        }
+
         Ok(CommandNode {
             key: helper.key,
             name,
