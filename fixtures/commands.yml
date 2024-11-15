@@ -88,6 +88,34 @@ keys:
       - key: t
         name: filter by test name
         value: -t
+  - key: C
+    value: curl
+    loop: true
+    keys:
+      - key: h
+        name: header
+        value: -H
+        keys:
+          - key: c
+            name: ContentType
+            keys:
+              - key: a
+                name: application/json
+                value: '"ContentType: application/json"'
+      - key: x
+        name: method
+        value: -X
+        keys:
+          - key: p
+            value: POST
+          - key: P
+            value: PUT
+          - key: g
+            value: GET
+          - key: o
+            value: OPTION
+          - key: d
+            value: DELETE
   - key: c
     value: cargo
     keys:
@@ -105,3 +133,18 @@ keys:
             value: ls
       - key: r
         value: run
+  - key: f
+    name: find
+    value: find .
+    loop: true
+    keys:
+      - key: t
+        value: -type
+        params: true
+        keys:
+          - key: f
+            name: file
+            value: f
+          - key: d
+            name: directory
+            value: d

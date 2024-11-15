@@ -21,7 +21,7 @@ impl<'de> Deserialize<'de> for CommandNode {
         struct CommandNodeHelper {
             key: String,
             name: Option<String>,
-            value: String,
+            value: Option<String>,
             #[serde(default)]
             reset: bool,
             #[serde(default)]
@@ -31,12 +31,13 @@ impl<'de> Deserialize<'de> for CommandNode {
         }
 
         let helper = CommandNodeHelper::deserialize(deserializer)?;
-        let name = helper.name.unwrap_or_else(|| helper.value.clone());
+        let value = helper.value.unwrap_or_else(|| "".to_string());
+        let name = helper.name.unwrap_or_else(|| value.clone());
 
         Ok(CommandNode {
             key: helper.key,
             name,
-            value: helper.value,
+            value,
             reset: helper.reset,
             is_loop: helper.r#loop,
             keys: helper.keys,
