@@ -6,8 +6,11 @@ use crate::config::Config;
 use clap::{Arg, ArgAction, Command};
 use std::error::Error;
 
+const COMMAND_NAME: &str = "which-cmd";
+const CONFIG_FILE_NAME: &str = "commands.yml";
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let matches = Command::new("which-cmd")
+    let matches = Command::new(COMMAND_NAME)
         .version("0.1.0")
         .about("Command Builder Tool")
         .arg(
@@ -25,13 +28,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let config_dirs = xdg::BaseDirectories::with_prefix("which-cmd")?;
-    let config_path = match config_dirs.find_config_file("commands.yml") {
+    let config_dirs = xdg::BaseDirectories::with_prefix(COMMAND_NAME)?;
+    let config_path = match config_dirs.find_config_file(CONFIG_FILE_NAME) {
         Some(path) => path,
         None => {
             eprintln!(
                 "Configuration file not found at {}",
-                config_dirs.place_config_file("commands.yml")?.display()
+                config_dirs.place_config_file(CONFIG_FILE_NAME)?.display()
             );
             std::process::exit(1);
         }
