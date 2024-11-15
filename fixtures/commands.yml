@@ -123,6 +123,8 @@ keys:
         value: run
       - key: b
         value: build
+      - key: t
+        value: test
   - key: d
     value: docker
     keys:
