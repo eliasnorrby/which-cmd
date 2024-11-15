@@ -193,11 +193,11 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
 }
 
 fn compose_command(path: &[&CommandNode]) -> String {
-    // Start building the command from the last reset point
+    // Start building the command from the last anchor point
     let mut command_parts = Vec::new();
     let mut start_index = 0;
     for (i, node) in path.iter().enumerate() {
-        if node.reset {
+        if node.is_anchor {
             start_index = i;
         }
     }
@@ -213,13 +213,13 @@ mod tests {
     use crate::command_node::CommandNode;
 
     #[test]
-    fn test_compose_command_no_reset() {
+    fn test_compose_command_no_anchor() {
         let node1 = CommandNode {
             key: "g".into(),
             name: "git".into(),
             value: "git".into(),
             is_fleeting: false,
-            reset: false,
+            is_anchor: false,
             is_loop: false,
             keys: vec![],
         };
@@ -228,7 +228,7 @@ mod tests {
             name: "status".into(),
             value: "status".into(),
             is_fleeting: false,
-            reset: false,
+            is_anchor: false,
             is_loop: false,
             keys: vec![],
         };
@@ -238,13 +238,13 @@ mod tests {
     }
 
     #[test]
-    fn test_compose_command_with_reset() {
+    fn test_compose_command_with_anchor() {
         let node1 = CommandNode {
             key: "g".into(),
             name: "git".into(),
             value: "git".into(),
             is_fleeting: false,
-            reset: false,
+            is_anchor: false,
             is_loop: false,
             keys: vec![],
         };
@@ -253,7 +253,7 @@ mod tests {
             name: "GitHub".into(),
             value: "gh".into(),
             is_fleeting: false,
-            reset: true,
+            is_anchor: true,
             is_loop: false,
             keys: vec![],
         };
@@ -262,7 +262,7 @@ mod tests {
             name: "pull request".into(),
             value: "pr".into(),
             is_fleeting: false,
-            reset: false,
+            is_anchor: false,
             is_loop: false,
             keys: vec![],
         };
