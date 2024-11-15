@@ -32,6 +32,11 @@ keys:
           - key: a
             name: abort
             value: --abort
+      - key: R
+        value: reset
+        keys:
+          - key: h
+            value: --hard
       - key: h
         name: GitHub
         value: gh
