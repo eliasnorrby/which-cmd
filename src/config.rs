@@ -7,10 +7,10 @@ pub struct Config {
     pub keys: Vec<CommandNode>,
 }
 
-use std::fs;
+use std::{fs, path::PathBuf};
 
 impl Config {
-    pub fn from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_file(path: PathBuf) -> Result<Self, Box<dyn std::error::Error>> {
         let contents = fs::read_to_string(path)?;
         let config: Config = serde_yaml::from_str(&contents)?;
         Ok(config)

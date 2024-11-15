@@ -25,7 +25,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let config = match Config::from_file("fixtures/commands.yml") {
+    let config_dirs = xdg::BaseDirectories::with_prefix("which-cmd")?;
+    let config_path = match config_dirs.find_config_file("commands.yml") {
+        Some(path) => path,
+        None => {
+            eprintln!(
+                "Configuration file not found at {}",
+                config_dirs.place_config_file("commands.yml")?.display()
+            );
+            std::process::exit(1);
+        }
+    };
+
+    let config = match Config::from_file(config_path) {
         Ok(cfg) => cfg,
         Err(e) => {
             eprintln!("Error loading configuration: {}", e);
