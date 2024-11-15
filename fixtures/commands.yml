@@ -95,13 +95,16 @@ keys:
       - key: h
         name: header
         value: -H
+        fleeting: true
         keys:
           - key: c
             name: ContentType
+            value: '"ContentType:'
+            fleeting: true
             keys:
               - key: a
                 name: application/json
-                value: '"ContentType: application/json"'
+                value: 'application/json"'
       - key: x
         name: method
         value: -X
@@ -142,7 +145,7 @@ keys:
     keys:
       - key: t
         value: -type
-        params: true
+        fleeting: true
         keys:
           - key: f
             name: file

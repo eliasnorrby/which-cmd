@@ -5,6 +5,7 @@ pub struct CommandNode {
     pub key: String,
     pub name: String,
     pub value: String,
+    pub is_fleeting: bool,
     pub reset: bool,
     pub is_loop: bool,
     pub keys: Vec<CommandNode>,
@@ -22,6 +23,8 @@ impl<'de> Deserialize<'de> for CommandNode {
             key: String,
             name: Option<String>,
             value: Option<String>,
+            #[serde(default)]
+            fleeting: bool,
             #[serde(default)]
             reset: bool,
             #[serde(default)]
@@ -42,6 +45,7 @@ impl<'de> Deserialize<'de> for CommandNode {
             key: helper.key,
             name,
             value,
+            is_fleeting: helper.fleeting,
             reset: helper.reset,
             is_loop: helper.r#loop,
             keys: helper.keys,

@@ -61,6 +61,15 @@ fn teardown(output: &mut Output) -> std::io::Result<()> {
     Ok(())
 }
 
+fn pop_to_first_non_is_fleeting(path: &mut Vec<&CommandNode>) {
+    while let Some(node) = path.pop() {
+        if !node.is_fleeting {
+            path.push(node);
+            break;
+        }
+    }
+}
+
 pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
     // Initialize terminal
     let mut output = Output::new();
@@ -164,6 +173,7 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                 KeyCode::Backspace => {
                     // Handle backspace
                     if let Some(_) = path.pop() {
+                        pop_to_first_non_is_fleeting(&mut path);
                         if let Some(last_node) = path.last() {
                             current_nodes = &last_node.keys;
                         } else {
@@ -208,6 +218,7 @@ mod tests {
             key: "g".into(),
             name: "git".into(),
             value: "git".into(),
+            is_fleeting: false,
             reset: false,
             is_loop: false,
             keys: vec![],
@@ -216,6 +227,7 @@ mod tests {
             key: "s".into(),
             name: "status".into(),
             value: "status".into(),
+            is_fleeting: false,
             reset: false,
             is_loop: false,
             keys: vec![],
@@ -231,6 +243,7 @@ mod tests {
             key: "g".into(),
             name: "git".into(),
             value: "git".into(),
+            is_fleeting: false,
             reset: false,
             is_loop: false,
             keys: vec![],
@@ -239,6 +252,7 @@ mod tests {
             key: "h".into(),
             name: "GitHub".into(),
             value: "gh".into(),
+            is_fleeting: false,
             reset: true,
             is_loop: false,
             keys: vec![],
@@ -247,6 +261,7 @@ mod tests {
             key: "p".into(),
             name: "pull request".into(),
             value: "pr".into(),
+            is_fleeting: false,
             reset: false,
             is_loop: false,
             keys: vec![],
