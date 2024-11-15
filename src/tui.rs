@@ -69,6 +69,7 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
 
     let mut current_nodes = &config.keys;
     let mut path: Vec<&CommandNode> = Vec::new();
+    let mut loop_node: Option<&CommandNode> = None;
 
     loop {
         clear_screen(&mut output)?;
@@ -138,11 +139,18 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                     // Handle character input
                     if let Some(node) = current_nodes.iter().find(|n| n.key == c.to_string()) {
                         path.push(node);
+                        if node.is_loop {
+                            loop_node = Some(node);
+                        }
                         if node.is_leaf() {
-                            // Build and return the command
-                            let command = compose_command(&path);
-                            teardown(&mut output)?;
-                            return Ok(command);
+                            if let Some(l) = loop_node {
+                                current_nodes = &l.keys;
+                            } else {
+                                // Build and return the command
+                                let command = compose_command(&path);
+                                teardown(&mut output)?;
+                                return Ok(command);
+                            }
                         } else {
                             current_nodes = &node.keys;
                         }
@@ -162,6 +170,11 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                             current_nodes = &config.keys;
                         }
                     }
+                }
+                KeyCode::Enter => {
+                    let command = compose_command(&path);
+                    teardown(&mut output)?;
+                    return Ok(command);
                 }
                 _ => {}
             }
@@ -196,6 +209,7 @@ mod tests {
             name: "git".into(),
             value: "git".into(),
             reset: false,
+            is_loop: false,
             keys: vec![],
         };
         let node2 = CommandNode {
@@ -203,6 +217,7 @@ mod tests {
             name: "status".into(),
             value: "status".into(),
             reset: false,
+            is_loop: false,
             keys: vec![],
         };
         let path = vec![&node1, &node2];
@@ -217,6 +232,7 @@ mod tests {
             name: "git".into(),
             value: "git".into(),
             reset: false,
+            is_loop: false,
             keys: vec![],
         };
         let node2 = CommandNode {
@@ -224,6 +240,7 @@ mod tests {
             name: "GitHub".into(),
             value: "gh".into(),
             reset: true,
+            is_loop: false,
             keys: vec![],
         };
         let node3 = CommandNode {
@@ -231,6 +248,7 @@ mod tests {
             name: "pull request".into(),
             value: "pr".into(),
             reset: false,
+            is_loop: false,
             keys: vec![],
         };
         let path = vec![&node1, &node2, &node3];

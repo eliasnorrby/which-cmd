@@ -68,6 +68,19 @@ keys:
       - key: n
         name: now
         value: +%s
+  - key: l
+    value: ls
+    loop: true
+    keys:
+      - key: l
+        name: long
+        value: -l
+      - key: a
+        name: all
+        value: -a
+      - key: r
+        name: recursive
+        value: -R
   - key: j
     name: jest
     value: pnpm jest
