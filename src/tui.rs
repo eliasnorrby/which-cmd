@@ -93,7 +93,7 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
         } else {
             output_write_line!(
                 output,
-                "Press a key to select an option, 'backspace' to go back, or 'q' to quit."
+                "Press a key to select an option, 'backspace' to go back, or 'esc' to quit."
             )?;
             output.blank_line()?;
             output_write_line!(output, "Available comands:")?;
@@ -140,7 +140,7 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
         // Wait for an event
         if let Event::Key(event) = event::read()? {
             match event.code {
-                KeyCode::Char('q') | KeyCode::Esc => {
+                KeyCode::Esc => {
                     teardown(&mut output)?;
                     return Ok("".into());
                 }
