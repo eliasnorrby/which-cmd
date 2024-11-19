@@ -72,12 +72,17 @@ fn pop_to_first_non_is_fleeting(path: &mut Vec<&CommandNode>) {
     }
 }
 
-fn format_node(node: &CommandNode) -> String {
+fn format_node(node: &CommandNode, opts: &Options) -> String {
     let sub_keys_count = node.keys.len();
     if sub_keys_count > 0 {
         format!(
             "{} \x1b[90m•\x1b[0m \x1b[94m{:<10} +{}\x1b[0m",
             node.key, node.name, sub_keys_count
+        )
+    } else if opts.print_immediate_tag && node.is_immediate {
+        format!(
+            "{} \x1b[90m•\x1b[0m \x1b[93m{:<10}\x1b[0m ↵",
+            node.key, node.name
         )
     } else {
         format!(
@@ -144,7 +149,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
 
         for (i, node) in sorted_nodes.iter().enumerate() {
             let row_index = i % num_rows;
-            let display_string = format_node(node);
+            let display_string = format_node(node, &opts);
             rows[row_index].push(display_string);
         }
 
