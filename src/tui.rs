@@ -70,6 +70,15 @@ fn pop_to_first_non_is_fleeting(path: &mut Vec<&CommandNode>) {
     }
 }
 
+fn format_node(node: &CommandNode) -> String {
+    let sub_keys_count = node.keys.len();
+    if sub_keys_count > 0 {
+        format!("{} • {:<10} +{}", node.key, node.name, sub_keys_count)
+    } else {
+        format!("{} • {:<10}", node.key, node.name)
+    }
+}
+
 pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
     // Initialize terminal
     let mut output = Output::new();
@@ -100,7 +109,10 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
             output.blank_line()?;
         }
 
-        // Sort the nodes by key
+        // Define the number of rows
+        let num_rows = 4;
+
+        // Sort the current_nodes before displaying them
         let mut sorted_nodes = current_nodes.to_vec();
         sorted_nodes.sort_by(|a, b| {
             let a_key_lower = a.key.to_lowercase();
@@ -119,20 +131,44 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
             }
         });
 
-        // Display the sorted options
-        for node in &sorted_nodes {
-            let sub_keys_count = node.keys.len();
-            if sub_keys_count > 0 {
-                output_write_line!(
-                    output,
-                    "{:<3} {:<15} +{}",
-                    node.key,
-                    node.name,
-                    sub_keys_count
-                )?;
-            } else {
-                output_write_line!(output, "{:<3} {:<15}", node.key, node.name)?;
+        // Arrange the options into rows
+        let mut rows: Vec<Vec<String>> = vec![Vec::new(); num_rows];
+
+        for (i, node) in sorted_nodes.iter().enumerate() {
+            let row_index = i % num_rows;
+            let display_string = format_node(node);
+            rows[row_index].push(display_string);
+        }
+
+        // Determine the maximum number of columns
+        let num_columns = rows.iter().map(|row| row.len()).max().unwrap_or(0);
+
+        // Initialize column widths
+        let mut column_widths = vec![0; num_columns];
+
+        // Calculate the maximum width for each column
+        for row in &rows {
+            for (col_index, display_string) in row.iter().enumerate() {
+                let width = display_string.len();
+                if width > column_widths[col_index] {
+                    column_widths[col_index] = width;
+                }
             }
+        }
+
+        // Display the options in table format
+        for row in &rows {
+            let mut line = String::new();
+            for (col_index, display_string) in row.iter().enumerate() {
+                let column_width = column_widths[col_index];
+                // Pad the display string to the column width
+                line.push_str(&format!(
+                    "{:<width$}\t",
+                    display_string,
+                    width = column_width
+                ));
+            }
+            output_write_line!(output, "{}", line.trim_end())?;
         }
 
         output.stderr.flush()?;
