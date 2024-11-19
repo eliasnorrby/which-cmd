@@ -43,13 +43,8 @@ configured to recognize this flag.",
         return Ok(());
     }
 
-    let opts: Options = match matches.value_source("immediate") {
-        Some(_) => Options {
-            print_immediate_tag: true,
-        },
-        None => Options {
-            print_immediate_tag: false,
-        },
+    let opts = Options {
+        print_immediate_tag: matches.get_flag("immediate"),
     };
 
     let config_dirs = xdg::BaseDirectories::with_prefix(COMMAND_NAME)?;
