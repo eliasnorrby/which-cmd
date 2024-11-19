@@ -1,8 +1,10 @@
 mod command_node;
 mod config;
+mod options;
 mod tui;
 
 use crate::config::Config;
+use crate::options::Options;
 use clap::{Arg, ArgAction, Command};
 use std::error::Error;
 
@@ -20,6 +22,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .help("Generate shell integration code")
                 .action(ArgAction::Set),
         )
+        .arg(
+            Arg::new("immediate")
+                .long("immediate")
+                .short('i')
+                .long_help(
+                    "When enabled, will prefix the output with a '__IMMEDIATE__' 
+flag to indicate that the command should be executed. Whatever
+integration is set up to handle the output of which-cmd must be
+configured to recognize this flag.",
+                )
+                .help("Prefix output with flag for immediat execution")
+                .action(ArgAction::SetTrue),
+        )
         .get_matches();
 
     if let Some(_) = matches.value_source("shell") {
@@ -27,6 +42,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         print_shell_integration(shell)?;
         return Ok(());
     }
+
+    let opts: Options = match matches.value_source("immediate") {
+        Some(_) => Options {
+            print_immediate_tag: true,
+        },
+        None => Options {
+            print_immediate_tag: false,
+        },
+    };
 
     let config_dirs = xdg::BaseDirectories::with_prefix(COMMAND_NAME)?;
     let config_path = match config_dirs.find_config_file(CONFIG_FILE_NAME) {
@@ -48,7 +72,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    match tui::run_tui(config) {
+    match tui::run_tui(config, opts) {
         Ok(command) => {
             println!("{}", command);
             Ok(())

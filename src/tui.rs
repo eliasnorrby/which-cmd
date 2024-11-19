@@ -1,5 +1,5 @@
-use crate::command_node::CommandNode;
 use crate::config::Config;
+use crate::{command_node::CommandNode, options::Options};
 
 use crossterm::{
     cursor::{self},
@@ -9,6 +9,8 @@ use crossterm::{
 };
 
 use std::io::{Stderr, Write};
+
+const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
 
 struct Output {
     stderr: Stderr,
@@ -85,7 +87,7 @@ fn format_node(node: &CommandNode) -> String {
     }
 }
 
-pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
+pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::error::Error>> {
     // Initialize terminal
     let mut output = Output::new();
 
@@ -200,7 +202,11 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                                 // Build and return the command
                                 let command = compose_command(&path);
                                 teardown(&mut output)?;
-                                return Ok(command);
+                                return if opts.print_immediate_tag && node.is_immediate {
+                                    Ok(format!("{} {}", IMMEDIATE_PREFIX, command))
+                                } else {
+                                    Ok(command)
+                                };
                             }
                         } else {
                             current_nodes = &node.keys;
@@ -226,7 +232,12 @@ pub fn run_tui(config: Config) -> Result<String, Box<dyn std::error::Error>> {
                 KeyCode::Enter => {
                     let command = compose_command(&path);
                     teardown(&mut output)?;
-                    return Ok(command);
+                    let last_node = path.last().unwrap();
+                    return if opts.print_immediate_tag && last_node.is_immediate {
+                        Ok(format!("{} {}", IMMEDIATE_PREFIX, command))
+                    } else {
+                        Ok(command)
+                    };
                 }
                 _ => {}
             }
@@ -260,6 +271,7 @@ mod tests {
             key: "g".into(),
             name: "git".into(),
             value: "git".into(),
+            is_immediate: false,
             is_fleeting: false,
             is_anchor: false,
             is_loop: false,
@@ -269,6 +281,7 @@ mod tests {
             key: "s".into(),
             name: "status".into(),
             value: "status".into(),
+            is_immediate: false,
             is_fleeting: false,
             is_anchor: false,
             is_loop: false,
@@ -285,6 +298,7 @@ mod tests {
             key: "g".into(),
             name: "git".into(),
             value: "git".into(),
+            is_immediate: false,
             is_fleeting: false,
             is_anchor: false,
             is_loop: false,
@@ -294,6 +308,7 @@ mod tests {
             key: "h".into(),
             name: "GitHub".into(),
             value: "gh".into(),
+            is_immediate: false,
             is_fleeting: false,
             is_anchor: true,
             is_loop: false,
@@ -303,6 +318,7 @@ mod tests {
             key: "p".into(),
             name: "pull request".into(),
             value: "pr".into(),
+            is_immediate: false,
             is_fleeting: false,
             is_anchor: false,
             is_loop: false,
