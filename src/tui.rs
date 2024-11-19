@@ -73,9 +73,15 @@ fn pop_to_first_non_is_fleeting(path: &mut Vec<&CommandNode>) {
 fn format_node(node: &CommandNode) -> String {
     let sub_keys_count = node.keys.len();
     if sub_keys_count > 0 {
-        format!("{} • {:<10} +{}", node.key, node.name, sub_keys_count)
+        format!(
+            "{} \x1b[90m•\x1b[0m \x1b[94m{:<10} +{}\x1b[0m",
+            node.key, node.name, sub_keys_count
+        )
     } else {
-        format!("{} • {:<10}", node.key, node.name)
+        format!(
+            "{} \x1b[90m•\x1b[0m \x1b[93m{:<10}\x1b[0m",
+            node.key, node.name
+        )
     }
 }
 
