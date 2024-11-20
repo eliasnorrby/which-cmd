@@ -110,7 +110,11 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
             output_write_line!(output, "Command: \x1b[32m{}\x1b[0m", compose_command(&path))?;
             output.blank_line()?;
             let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
-            output_write_line!(output, "Keys pressed: {}", keys_pressed.join(" > "))?;
+            output_write_line!(
+                output,
+                "Keys pressed: {}",
+                keys_pressed.join(" \x1b[90m>\x1b[0m ")
+            )?;
             output.blank_line()?;
         } else {
             output_write_line!(
