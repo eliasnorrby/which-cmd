@@ -107,7 +107,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
 
         // Display the current path
         if !path.is_empty() {
-            output_write_line!(output, "Command: {}", compose_command(&path))?;
+            output_write_line!(output, "Command: \x1b[32m{}\x1b[0m", compose_command(&path))?;
             output.blank_line()?;
             let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
             output_write_line!(output, "Keys pressed: {}", keys_pressed.join(" > "))?;
