@@ -76,17 +76,17 @@ fn format_node(node: &CommandNode, opts: &Options) -> String {
     let sub_keys_count = node.keys.len();
     if sub_keys_count > 0 {
         format!(
-            "{} \x1b[90m•\x1b[0m \x1b[94m{:<10} +{}\x1b[0m",
+            "\x1b[1m{}\x1b[0m \x1b[90m•\x1b[0m \x1b[94m{:<10} +{}\x1b[0m",
             node.key, node.name, sub_keys_count
         )
     } else if opts.print_immediate_tag && node.is_immediate {
         format!(
-            "{} \x1b[90m•\x1b[0m \x1b[93m{:<10}\x1b[0m ↵",
+            "\x1b[1m{}\x1b[0m \x1b[90m•\x1b[0m \x1b[93m{:<10}\x1b[0m ↵",
             node.key, node.name
         )
     } else {
         format!(
-            "{} \x1b[90m•\x1b[0m \x1b[93m{:<10}\x1b[0m",
+            "\x1b[1m{}\x1b[0m \x1b[90m•\x1b[0m \x1b[93m{:<10}\x1b[0m",
             node.key, node.name
         )
     }
