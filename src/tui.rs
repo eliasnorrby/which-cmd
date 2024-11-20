@@ -107,22 +107,26 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
 
         // Display the current path
         if !path.is_empty() {
-            output_write_line!(output, "Command: \x1b[32m{}\x1b[0m", compose_command(&path))?;
+            output_write_line!(
+                output,
+                "\x1b[97mCommand:\x1b[0m \x1b[32m{}\x1b[0m",
+                compose_command(&path)
+            )?;
             output.blank_line()?;
             let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
             output_write_line!(
                 output,
-                "Keys pressed: {}",
+                "\x1b[97mKeys pressed:\x1b[0m {}",
                 keys_pressed.join(" \x1b[90m>\x1b[0m ")
             )?;
             output.blank_line()?;
         } else {
             output_write_line!(
                 output,
-                "Press a key to select an option, 'backspace' to go back, or 'esc' to quit."
+                "\x1b[97mPress a key to select an option, 'backspace' to go back, or 'esc' to quit.\x1b[0m"
             )?;
             output.blank_line()?;
-            output_write_line!(output, "Available comands:")?;
+            output_write_line!(output, "\x1b[97mAvailable comands:\x1b[0m")?;
             output.blank_line()?;
         }
 
