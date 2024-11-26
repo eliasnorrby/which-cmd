@@ -185,7 +185,11 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                     width = column_width
                 ));
             }
-            terminal.write_line(&line.trim_end())?;
+            if row == rows.last().unwrap() {
+                terminal.write(&line.trim_end())?;
+            } else {
+                terminal.write_line(&line)?;
+            }
         }
 
         terminal.flush()?;
