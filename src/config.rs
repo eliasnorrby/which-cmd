@@ -1,17 +1,31 @@
 use serde::Deserialize;
+use std::fs;
 
 use crate::command_node::CommandNode;
+
+const PREFIX: &str = env!("CARGO_PKG_NAME");
+const CONFIG_FILE_NAME: &str = "commands.yml";
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub keys: Vec<CommandNode>,
 }
 
-use std::{fs, path::PathBuf};
-
 impl Config {
-    pub fn from_file(path: PathBuf) -> Result<Self, Box<dyn std::error::Error>> {
-        let contents = fs::read_to_string(path)?;
+    pub fn from_file() -> Result<Self, Box<dyn std::error::Error>> {
+        let config_dirs = xdg::BaseDirectories::with_prefix(PREFIX)?;
+        let config_path = match config_dirs.find_config_file(CONFIG_FILE_NAME) {
+            Some(path) => path,
+            None => {
+                eprintln!(
+                    "Configuration file not found at {}",
+                    config_dirs.place_config_file(CONFIG_FILE_NAME)?.display()
+                );
+                std::process::exit(1);
+            }
+        };
+
+        let contents = fs::read_to_string(config_path)?;
         let config: Config = serde_yaml::from_str(&contents)?;
         Ok(config)
     }
