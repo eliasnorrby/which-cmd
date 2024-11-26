@@ -5,62 +5,63 @@ use crossterm::{
     cursor::{self},
     event::{self, Event, KeyCode},
     terminal::{self, ClearType},
-    ExecutableCommand,
+    ExecutableCommand, Result as CrosstermResult,
 };
 
-use std::io::{Stderr, Write};
+use std::io::Write;
 
 const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
 
-struct Output {
-    stderr: Stderr,
+struct Terminal<W: Write> {
+    writer: W,
 }
 
-impl Output {
-    fn new() -> Self {
-        Output {
-            stderr: std::io::stderr(),
-        }
+impl<W: Write> Terminal<W> {
+    pub fn new(writer: W) -> Self {
+        Terminal { writer }
     }
 
-    fn write_line(&mut self, args: std::fmt::Arguments) -> std::io::Result<()> {
-        self.stderr.write_all(b" ")?;
-        self.stderr.write_fmt(args)?;
+    pub fn setup(&mut self) -> CrosstermResult<()> {
+        terminal::enable_raw_mode()?;
+        self.writer.execute(cursor::Hide)?;
+        self.clear_screen()?;
+        Ok(())
+    }
+
+    pub fn teardown(&mut self) -> CrosstermResult<()> {
+        self.clear_screen()?;
+        self.writer.execute(cursor::Show)?;
+        terminal::disable_raw_mode()?;
+        Ok(())
+    }
+
+    pub fn clear_screen(&mut self) -> CrosstermResult<()> {
+        self.writer.execute(terminal::Clear(ClearType::All))?;
+        self.writer.execute(cursor::MoveTo(0, 0))?;
+        Ok(())
+    }
+
+    pub fn write(&mut self, content: &str) -> CrosstermResult<()> {
+        self.writer.write_all(b" ")?;
+        self.writer.write_all(content.as_bytes())?;
+        Ok(())
+    }
+
+    pub fn write_line(&mut self, content: &str) -> std::io::Result<()> {
+        self.write(content)?;
         self.blank_line()?;
         Ok(())
     }
 
-    fn blank_line(&mut self) -> std::io::Result<()> {
-        self.stderr.write_all(b"\r\n")?;
+    pub fn blank_line(&mut self) -> std::io::Result<()> {
+        self.writer.write_all(b"\r\n")?;
         Ok(())
     }
-}
 
-macro_rules! output_write_line {
-    ($output:expr, $($arg:tt)*) => {
-        $output.write_line(format_args!($($arg)*))
+    pub fn flush(&mut self) -> std::io::Result<()> {
+        self.writer.flush()?;
+        Ok(())
     }
-}
-
-// TODO: Error handling
-fn clear_screen(output: &mut Output) -> std::io::Result<()> {
-    output.stderr.execute(terminal::Clear(ClearType::All))?;
-    output.stderr.execute(cursor::MoveTo(0, 0))?;
-    Ok(())
-}
-
-fn setup(output: &mut Output) -> std::io::Result<()> {
-    terminal::enable_raw_mode()?;
-    output.stderr.execute(cursor::Hide)?;
-    clear_screen(output)?;
-    Ok(())
-}
-
-fn teardown(output: &mut Output) -> std::io::Result<()> {
-    clear_screen(output)?;
-    output.stderr.execute(cursor::Show)?;
-    terminal::disable_raw_mode()?;
-    Ok(())
 }
 
 fn pop_to_first_non_is_fleeting(path: &mut Vec<&CommandNode>) {
@@ -94,40 +95,35 @@ fn format_node(node: &CommandNode, opts: &Options) -> String {
 
 pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::error::Error>> {
     // Initialize terminal
-    let mut output = Output::new();
+    let mut terminal = Terminal::new(std::io::stderr());
 
-    setup(&mut output)?;
+    terminal.setup()?;
 
     let mut current_nodes = &config.keys;
     let mut path: Vec<&CommandNode> = Vec::new();
     let mut loop_node: Option<&CommandNode> = None;
 
     loop {
-        clear_screen(&mut output)?;
+        terminal.clear_screen()?;
 
         // Display the current path
         if !path.is_empty() {
-            output_write_line!(
-                output,
+            terminal.write_line(&format!(
                 "\x1b[97mCommand:\x1b[0m \x1b[32m{}\x1b[0m",
                 compose_command(&path)
-            )?;
-            output.blank_line()?;
+            ))?;
+            terminal.blank_line()?;
             let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
-            output_write_line!(
-                output,
+            terminal.write_line(&format!(
                 "\x1b[97mKeys pressed:\x1b[0m {}",
                 keys_pressed.join(" \x1b[90m>\x1b[0m ")
-            )?;
-            output.blank_line()?;
+            ))?;
+            terminal.blank_line()?;
         } else {
-            output_write_line!(
-                output,
-                "\x1b[97mPress a key to select an option, 'backspace' to go back, or 'esc' to quit.\x1b[0m"
-            )?;
-            output.blank_line()?;
-            output_write_line!(output, "\x1b[97mAvailable comands:\x1b[0m")?;
-            output.blank_line()?;
+            terminal.write_line("\x1b[97mPress a key to select an option, 'backspace' to go back, or 'esc' to quit.\x1b[0m")?;
+            terminal.blank_line()?;
+            terminal.write_line("\x1b[97mAvailable comands:\x1b[0m")?;
+            terminal.blank_line()?;
         }
 
         // Define the number of rows
@@ -189,16 +185,16 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                     width = column_width
                 ));
             }
-            output_write_line!(output, "{}", line.trim_end())?;
+            terminal.write_line(&line.trim_end())?;
         }
 
-        output.stderr.flush()?;
+        terminal.flush()?;
 
         // Wait for an event
         if let Event::Key(event) = event::read()? {
             match event.code {
                 KeyCode::Esc => {
-                    teardown(&mut output)?;
+                    terminal.teardown()?;
                     return Ok("".into());
                 }
                 KeyCode::Char(c) => {
@@ -214,7 +210,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                             } else {
                                 // Build and return the command
                                 let command = compose_command(&path);
-                                teardown(&mut output)?;
+                                terminal.teardown()?;
                                 return if opts.print_immediate_tag && node.is_immediate {
                                     Ok(format!("{} {}", IMMEDIATE_PREFIX, command))
                                 } else {
@@ -226,8 +222,8 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                         }
                     } else {
                         // Invalid key pressed
-                        output_write_line!(output, "\nInvalid key: {}", c)?;
-                        output.stderr.flush()?;
+                        terminal.write_line(&format!("\nInvalid key: {}", c))?;
+                        terminal.flush()?;
                         std::thread::sleep(std::time::Duration::from_secs(1));
                     }
                 }
@@ -244,7 +240,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                 }
                 KeyCode::Enter => {
                     let command = compose_command(&path);
-                    teardown(&mut output)?;
+                    terminal.teardown()?;
                     let last_node = path.last().unwrap();
                     return if opts.print_immediate_tag && last_node.is_immediate {
                         Ok(format!("{} {}", IMMEDIATE_PREFIX, command))
