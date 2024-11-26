@@ -228,7 +228,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                         // Invalid key pressed
                         terminal.write_line(&format!("\nInvalid key: {}", c))?;
                         terminal.flush()?;
-                        std::thread::sleep(std::time::Duration::from_secs(1));
+                        std::thread::sleep(std::time::Duration::from_millis(500));
                     }
                 }
                 KeyCode::Backspace => {
