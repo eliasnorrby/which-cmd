@@ -58,6 +58,27 @@ impl<W: Write> Terminal<W> {
         Ok(())
     }
 
+    /// Writes a line of text centered horizontally on the current row.
+    pub fn write_centered_line(&mut self, content: &str) -> std::io::Result<()> {
+        // Fetch terminal size
+        let (cols, _) = terminal::size()?;
+
+        // Calculate starting column for center alignment
+        let content_length = content.len() as u16;
+        let start_col = if content_length < cols {
+            (cols - content_length) / 2
+        } else {
+            0
+        };
+
+        // Move cursor to the starting column of the current row
+        self.writer
+            .execute(cursor::MoveTo(start_col, cursor::position()?.1))?;
+
+        // Write the content
+        self.write_line(content)
+    }
+
     pub fn flush(&mut self) -> std::io::Result<()> {
         self.writer.flush()?;
         Ok(())
@@ -185,12 +206,11 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                     width = column_width
                 ));
             }
-            if row == rows.last().unwrap() {
-                terminal.write(&line.trim_end())?;
-            } else {
-                terminal.write_line(&line)?;
-            }
+            terminal.write_line(&line)?;
         }
+
+        terminal.blank_line()?;
+        // terminal.write_centered_line("󱊷  \x1b[97mclose\x1b[0m  󰁮  \x1b[97mback\x1b[0m")?;
 
         terminal.flush()?;
 
