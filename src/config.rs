@@ -11,13 +11,14 @@ pub struct Config {
 
 impl Config {
     pub fn from_file() -> Result<Self, Box<dyn std::error::Error>> {
-        let config_dirs = xdg::BaseDirectories::with_prefix(PREFIX)?;
-        let config_path = match config_dirs.find_config_file(CONFIG_FILE_NAME) {
+        let xdg_dirs = xdg::BaseDirectories::with_prefix(PREFIX)?;
+        let config_path = match xdg_dirs.find_config_file(CONFIG_FILE_NAME) {
             Some(path) => path,
             None => {
                 eprintln!(
-                    "Configuration file not found at {}",
-                    config_dirs.place_config_file(CONFIG_FILE_NAME)?.display()
+                    "Configuration file not found at {}{}",
+                    xdg_dirs.get_config_home().display(),
+                    CONFIG_FILE_NAME
                 );
                 std::process::exit(1);
             }
