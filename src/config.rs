@@ -2,9 +2,7 @@ use serde::Deserialize;
 use std::fs;
 
 use crate::command_node::CommandNode;
-
-const PREFIX: &str = env!("CARGO_PKG_NAME");
-const CONFIG_FILE_NAME: &str = "commands.yml";
+use crate::constants::*;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
