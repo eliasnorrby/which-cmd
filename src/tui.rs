@@ -80,6 +80,12 @@ impl<W: Write> Terminal<W> {
         self.write(content)
     }
 
+    pub fn start_of_row(&mut self) -> CrosstermResult<()> {
+        self.writer
+            .execute(cursor::MoveTo(0, cursor::position()?.1))?;
+        Ok(())
+    }
+
     pub fn flush(&mut self) -> std::io::Result<()> {
         self.writer.flush()?;
         Ok(())
@@ -254,9 +260,10 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                         }
                     } else {
                         // Invalid key pressed
-                        terminal.write_line(&format!("\nInvalid key: {}", c))?;
+                        terminal.start_of_row()?;
+                        terminal.write(&format!("{} {}", "Invalid key:".red(), c))?;
                         terminal.flush()?;
-                        std::thread::sleep(std::time::Duration::from_millis(500));
+                        std::thread::sleep(std::time::Duration::from_millis(750));
                     }
                 }
                 KeyCode::Backspace => {
