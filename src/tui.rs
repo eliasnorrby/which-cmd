@@ -64,7 +64,7 @@ impl<W: Write> Terminal<W> {
         let (cols, _) = terminal::size()?;
 
         // Calculate starting column for center alignment
-        let content_length = content.len() as u16;
+        let content_length = console::measure_text_width(content) as u16;
         let start_col = if content_length < cols {
             (cols - content_length) / 2
         } else {
@@ -210,7 +210,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
         }
 
         terminal.blank_line()?;
-        // terminal.write_centered_line("󱊷  \x1b[97mclose\x1b[0m  󰁮  \x1b[97mback\x1b[0m")?;
+        terminal.write_centered_line("󱊷  \x1b[97mclose\x1b[0m  󰁮  \x1b[97mback\x1b[0m")?;
 
         terminal.flush()?;
 
