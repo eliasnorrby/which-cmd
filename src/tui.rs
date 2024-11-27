@@ -4,6 +4,7 @@ use crate::{command_node::CommandNode, options::Options};
 use crossterm::{
     cursor::{self},
     event::{self, Event, KeyCode},
+    style::Stylize,
     terminal::{self, ClearType},
     ExecutableCommand, Result as CrosstermResult,
 };
@@ -59,7 +60,7 @@ impl<W: Write> Terminal<W> {
     }
 
     /// Writes a line of text centered horizontally on the current row.
-    pub fn write_centered_line(&mut self, content: &str) -> std::io::Result<()> {
+    pub fn write_centered(&mut self, content: &str) -> std::io::Result<()> {
         // Fetch terminal size
         let (cols, _) = terminal::size()?;
 
@@ -76,7 +77,7 @@ impl<W: Write> Terminal<W> {
             .execute(cursor::MoveTo(start_col, cursor::position()?.1))?;
 
         // Write the content
-        self.write_line(content)
+        self.write(content)
     }
 
     pub fn flush(&mut self) -> std::io::Result<()> {
@@ -98,18 +99,19 @@ fn format_node(node: &CommandNode, opts: &Options) -> String {
     let sub_keys_count = node.keys.len();
     if sub_keys_count > 0 {
         format!(
-            "\x1b[1m{}\x1b[0m \x1b[90m•\x1b[0m \x1b[94m{:<10} +{}\x1b[0m",
-            node.key, node.name, sub_keys_count
-        )
-    } else if opts.print_immediate_tag && node.is_immediate {
-        format!(
-            "\x1b[1m{}\x1b[0m \x1b[90m•\x1b[0m \x1b[93m{:<10}\x1b[0m ↵",
-            node.key, node.name
+            "{} {} {}",
+            node.key.to_string().bold(),
+            "•".dark_grey(),
+            format!("{:<10} +{}", node.name, sub_keys_count).blue()
         )
     } else {
+        let include_immediate_tag = opts.print_immediate_tag && node.is_immediate;
         format!(
-            "\x1b[1m{}\x1b[0m \x1b[90m•\x1b[0m \x1b[93m{:<10}\x1b[0m",
-            node.key, node.name
+            "{} {} {} {}",
+            node.key.to_string().bold(),
+            "•".dark_grey(),
+            format!("{:<10}", node.name).yellow(),
+            if include_immediate_tag { "↵" } else { "" }
         )
     }
 }
@@ -130,20 +132,22 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
         // Display the current path
         if !path.is_empty() {
             terminal.write_line(&format!(
-                "\x1b[97mCommand:\x1b[0m \x1b[32m{}\x1b[0m",
-                compose_command(&path)
+                "{} {}",
+                "Command:".grey(),
+                compose_command(&path).green()
             ))?;
             terminal.blank_line()?;
             let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
             terminal.write_line(&format!(
-                "\x1b[97mKeys pressed:\x1b[0m {}",
-                keys_pressed.join(" \x1b[90m>\x1b[0m ")
+                "{} {}",
+                "Keys pressed:".grey(),
+                keys_pressed.join(&" > ".dark_grey().to_string())
             ))?;
             terminal.blank_line()?;
         } else {
-            terminal.write_line("\x1b[97mPress a key to select an option, 'backspace' to go back, or 'esc' to quit.\x1b[0m")?;
+            terminal.write_line(&format!("{}", "Press a key to select an option".grey()))?;
             terminal.blank_line()?;
-            terminal.write_line("\x1b[97mAvailable comands:\x1b[0m")?;
+            terminal.write_line(&format!("{}", "Available commands:".grey()))?;
             terminal.blank_line()?;
         }
 
@@ -210,7 +214,11 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
         }
 
         terminal.blank_line()?;
-        terminal.write_centered_line("󱊷  \x1b[97mclose\x1b[0m  󰁮  \x1b[97mback\x1b[0m")?;
+        terminal.write_centered(&format!(
+            "󱊷  {}  󰁮  {}",
+            "close".dark_grey(),
+            "back".dark_grey()
+        ))?;
 
         terminal.flush()?;
 
