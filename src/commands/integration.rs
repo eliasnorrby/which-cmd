@@ -1,6 +1,14 @@
-pub fn integration_command(shell: &str) -> Result<(), Box<dyn std::error::Error>> {
+use clap::ValueEnum;
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Shell {
+    Zsh,
+    ZshTmux,
+}
+
+pub fn integration_command(shell: Shell) -> Result<(), Box<dyn std::error::Error>> {
     match shell {
-        "zsh" => {
+        Shell::Zsh => {
             println!(
                 r#"
 # which-cmd integration for zsh
@@ -18,7 +26,7 @@ bindkey '^P' which_cmd_widget
 "#
             );
         }
-        "zsh-tmux" => {
+        Shell::ZshTmux => {
             println!(
                 r#"
 # which-cmd integration for zsh + tmux
@@ -47,11 +55,10 @@ zle -N which_cmd_tmux_widget
 bindkey ' ' which_cmd_tmux_widget
 "#
             );
-        }
-        _ => {
-            eprintln!("Shell '{}' is not supported.", shell);
-            std::process::exit(1);
-        }
+        } // _ => {
+          //     eprintln!("Shell '{:?}' is not supported.", shell);
+          //     std::process::exit(1);
+          // }
     }
     Ok(())
 }

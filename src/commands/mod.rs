@@ -1,6 +1,6 @@
 mod build;
 mod get;
-mod integration;
+pub mod integration;
 
 pub use build::build_command;
 pub use get::get_command;

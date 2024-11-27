@@ -6,6 +6,8 @@ mod tui;
 
 mod commands;
 
+use commands::integration::Shell;
+
 use clap::{command, Parser, Subcommand};
 use std::error::Error;
 
@@ -35,7 +37,10 @@ configured to recognize this flag."
     /// Get a previously built command
     Get,
     /// Generate shell integration code
-    Integration { shell: String },
+    Integration {
+        #[arg(value_enum)]
+        shell: Shell,
+    },
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -44,7 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     match args.cmd {
         Commands::Build { immediate } => commands::build_command(immediate)?,
         Commands::Get => commands::get_command()?,
-        Commands::Integration { shell } => commands::integration_command(&shell)?,
+        Commands::Integration { shell } => commands::integration_command(shell)?,
     }
 
     Ok(())
