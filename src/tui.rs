@@ -270,14 +270,16 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                     // Handle backspace
                     if let Some(_) = path.pop() {
                         pop_to_first_non_is_fleeting(&mut path);
-                        if let Some(last_node) = path.last() {
-                            current_nodes = &last_node.keys;
-                        } else {
-                            current_nodes = &config.keys;
-                        }
                         // If loop_node is not contained in path, unset it
                         if loop_node.is_some_and(|l| !path.contains(&l)) {
                             loop_node = None;
+                        }
+                        if let Some(l) = loop_node {
+                            current_nodes = &l.keys;
+                        } else if let Some(last_node) = path.last() {
+                            current_nodes = &last_node.keys;
+                        } else {
+                            current_nodes = &config.keys;
                         }
                     }
                 }
