@@ -276,10 +276,8 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                             current_nodes = &config.keys;
                         }
                         // If loop_node is not contained in path, unset it
-                        if let Some(l) = loop_node {
-                            if !path.contains(&l) {
-                                loop_node = None;
-                            }
+                        if loop_node.is_some_and(|l| !path.contains(&l)) {
+                            loop_node = None;
                         }
                     }
                 }
