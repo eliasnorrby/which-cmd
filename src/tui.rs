@@ -124,7 +124,7 @@ fn format_node(node: &CommandNode, opts: &Options) -> String {
 
 pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::error::Error>> {
     // Initialize terminal
-    let mut terminal = Terminal::new(std::io::stderr());
+    let mut terminal = Terminal::new(std::io::stdout());
 
     terminal.setup()?;
 
