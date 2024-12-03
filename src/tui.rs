@@ -275,6 +275,12 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                         } else {
                             current_nodes = &config.keys;
                         }
+                        // If loop_node is not contained in path, unset it
+                        if let Some(l) = loop_node {
+                            if !path.contains(&l) {
+                                loop_node = None;
+                            }
+                        }
                     }
                 }
                 KeyCode::Enter => {

@@ -1,6 +1,7 @@
 use serde::Deserialize;
 
-#[derive(Debug, Clone)]
+// TODO: add a unique id built from keys
+#[derive(Debug, Clone, PartialEq)]
 pub struct CommandNode {
     pub key: String,
     pub name: String,
