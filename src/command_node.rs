@@ -11,6 +11,7 @@ pub struct CommandNode {
     pub is_anchor: bool,
     pub is_loop: bool,
     pub keys: Vec<CommandNode>,
+    pub choices: Vec<CommandNode>,
 }
 
 // Implement custom deserialization for CommandNode
@@ -35,11 +36,28 @@ impl<'de> Deserialize<'de> for CommandNode {
             r#loop: bool,
             #[serde(default)]
             keys: Vec<CommandNode>,
+            #[serde(default)]
+            choices: Vec<String>,
         }
 
         let helper = CommandNodeHelper::deserialize(deserializer)?;
         let value = helper.value.unwrap_or_else(|| "".to_string());
         let name = helper.name.unwrap_or_else(|| value.clone());
+        let choices = helper
+            .choices
+            .iter()
+            .map(|choice| CommandNode {
+                key: "[choice]".to_string(),
+                name: choice.clone(),
+                value: choice.clone(),
+                is_immediate: false,
+                is_fleeting: false,
+                is_anchor: false,
+                is_loop: false,
+                keys: vec![],
+                choices: vec![],
+            })
+            .collect();
 
         if name.is_empty() {
             return Err(serde::de::Error::custom("name must not be empty"));
@@ -54,12 +72,17 @@ impl<'de> Deserialize<'de> for CommandNode {
             is_anchor: helper.anchor,
             is_loop: helper.r#loop,
             keys: helper.keys,
+            choices,
         })
     }
 }
 
 impl CommandNode {
     pub fn is_leaf(&self) -> bool {
-        self.keys.is_empty()
+        self.keys.is_empty() && !self.has_choices()
+    }
+
+    pub fn has_choices(&self) -> bool {
+        !self.choices.is_empty()
     }
 }

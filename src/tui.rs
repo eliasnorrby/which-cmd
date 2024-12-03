@@ -8,6 +8,7 @@ use crossterm::{
     terminal::{self, ClearType},
     ExecutableCommand, Result as CrosstermResult,
 };
+use dialoguer::FuzzySelect;
 
 use std::io::Write;
 
@@ -255,6 +256,22 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                                     Ok(command)
                                 };
                             }
+                        } else if node.has_choices() {
+                            terminal.clear_screen()?;
+                            terminal.teardown()?;
+                            let selection = FuzzySelect::new()
+                                .with_prompt("What do you choose?")
+                                .items(
+                                    &node
+                                        .choices
+                                        .iter()
+                                        .map(|c| c.name.as_str())
+                                        .collect::<Vec<&str>>(),
+                                )
+                                .interact()
+                                .unwrap();
+                            terminal.setup()?;
+                            path.push(&node.choices[selection]);
                         } else {
                             current_nodes = &node.keys;
                         }
@@ -330,6 +347,7 @@ mod tests {
             is_anchor: false,
             is_loop: false,
             keys: vec![],
+            choices: vec![],
         };
         let node2 = CommandNode {
             key: "s".into(),
@@ -340,6 +358,7 @@ mod tests {
             is_anchor: false,
             is_loop: false,
             keys: vec![],
+            choices: vec![],
         };
         let path = vec![&node1, &node2];
         let command = compose_command(&path);
@@ -357,6 +376,7 @@ mod tests {
             is_anchor: false,
             is_loop: false,
             keys: vec![],
+            choices: vec![],
         };
         let node2 = CommandNode {
             key: "h".into(),
@@ -367,6 +387,7 @@ mod tests {
             is_anchor: true,
             is_loop: false,
             keys: vec![],
+            choices: vec![],
         };
         let node3 = CommandNode {
             key: "p".into(),
@@ -377,6 +398,7 @@ mod tests {
             is_anchor: false,
             is_loop: false,
             keys: vec![],
+            choices: vec![],
         };
         let path = vec![&node1, &node2, &node3];
         let command = compose_command(&path);
