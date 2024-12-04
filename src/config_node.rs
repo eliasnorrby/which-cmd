@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::constants::CHOICE_KEY;
+use crate::constants::{CHOICE_KEY, INPUT_KEY};
 
 #[derive(Debug, Clone)]
 pub struct ConfigNode {
@@ -14,6 +14,13 @@ pub struct ConfigNode {
     pub is_loop: bool,
     pub keys: Vec<ConfigNode>,
     pub choices: Vec<String>,
+    pub input_type: Option<InputType>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub enum InputType {
+    Text,
+    Number,
 }
 
 // Implement custom deserialization for ConfigNode
@@ -40,6 +47,7 @@ impl<'de> Deserialize<'de> for ConfigNode {
             keys: Vec<ConfigNode>,
             #[serde(default)]
             choices: Vec<String>,
+            input: Option<InputType>,
         }
 
         let helper = ConfigNodeHelper::deserialize(deserializer)?;
@@ -51,6 +59,7 @@ impl<'de> Deserialize<'de> for ConfigNode {
         }
 
         Ok(ConfigNode {
+            // Initialize id with empty string. This will be set later by traversing the tree.
             id: "".to_string(),
             key: helper.key,
             name,
@@ -61,13 +70,14 @@ impl<'de> Deserialize<'de> for ConfigNode {
             is_loop: helper.r#loop,
             keys: helper.keys,
             choices: helper.choices,
+            input_type: helper.input,
         })
     }
 }
 
 impl ConfigNode {
     pub fn is_leaf(&self) -> bool {
-        self.keys.is_empty() && !self.has_choices()
+        self.keys.is_empty() && !self.has_choices() && !self.input_type.is_some()
     }
 
     pub fn has_choices(&self) -> bool {
@@ -100,6 +110,23 @@ impl ConfigNode {
             is_loop: false,
             keys: vec![],
             choices: vec![],
+            input_type: None,
+        }
+    }
+
+    pub fn with_input(&self, input: &str) -> ConfigNode {
+        ConfigNode {
+            id: ConfigNode::id_from_parent(&self.id, input),
+            key: INPUT_KEY.to_string(),
+            name: input.to_string(),
+            value: input.to_string(),
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            keys: vec![],
+            choices: vec![],
+            input_type: None,
         }
     }
 }

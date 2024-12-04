@@ -1,5 +1,8 @@
 use crate::config::Config;
-use crate::{config_node::ConfigNode, options::Options};
+use crate::{
+    config_node::{ConfigNode, InputType},
+    options::Options,
+};
 
 use crossterm::{
     cursor::{self},
@@ -271,6 +274,26 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                                 .unwrap();
                             terminal.setup()?;
                             path.push(node.with_selection(selection));
+                        } else if let Some(input_type) = &node.input_type {
+                            terminal.clear_screen()?;
+                            terminal.teardown()?;
+                            match input_type {
+                                InputType::Text => {
+                                    let input = dialoguer::Input::<String>::new()
+                                        .with_prompt(&format!("Enter {}", node.name))
+                                        .interact()?;
+                                    terminal.setup()?;
+                                    path.push(node.with_input(&input));
+                                }
+                                InputType::Number => {
+                                    let input = dialoguer::Input::<i32>::new()
+                                        .with_prompt(&format!("Enter {}", node.name))
+                                        .interact()?;
+                                    terminal.setup()?;
+                                    path.push(node.with_input(&input.to_string()));
+                                }
+                            }
+                            terminal.setup()?;
                         }
                     } else {
                         // Invalid key pressed
@@ -339,6 +362,7 @@ mod tests {
             is_loop: false,
             keys: vec![],
             choices: vec![],
+            input_type: None,
         };
         let node2 = ConfigNode {
             id: "s".into(),
@@ -351,6 +375,7 @@ mod tests {
             is_loop: false,
             keys: vec![],
             choices: vec![],
+            input_type: None,
         };
         let path = vec![node1, node2];
         let command = compose_command(&path);
@@ -370,6 +395,7 @@ mod tests {
             is_loop: false,
             keys: vec![],
             choices: vec![],
+            input_type: None,
         };
         let node2 = ConfigNode {
             id: "h".into(),
@@ -382,6 +408,7 @@ mod tests {
             is_loop: false,
             keys: vec![],
             choices: vec![],
+            input_type: None,
         };
         let node3 = ConfigNode {
             id: "p".into(),
@@ -394,6 +421,7 @@ mod tests {
             is_loop: false,
             keys: vec![],
             choices: vec![],
+            input_type: None,
         };
         let path = vec![node1, node2, node3];
         let command = compose_command(&path);
