@@ -41,6 +41,8 @@ configured to recognize this flag."
         #[arg(value_enum)]
         shell: Shell,
     },
+    /// Troubleshoot configuration
+    Doctor,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -50,6 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Commands::Build { immediate } => commands::build_command(immediate)?,
         Commands::Get => commands::get_command()?,
         Commands::Integration { shell } => commands::integration_command(shell)?,
+        Commands::Doctor => commands::doctor_command(),
     }
 
     Ok(())
