@@ -1,0 +1,3 @@
+id: http://which-cmd.tool
+description: Schema for which-cmd configuration files
+type: object
