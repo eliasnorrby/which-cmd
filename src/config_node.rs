@@ -68,7 +68,7 @@ impl<'de> Deserialize<'de> for ConfigNode {
             name,
             value,
             is_immediate: helper.immediate,
-            is_fleeting: helper.fleeting,
+            is_fleeting: helper.fleeting || helper.input.is_some() || !helper.choices.is_empty(),
             is_anchor: helper.anchor,
             is_loop: helper.r#loop,
             is_repeatable: helper.repeatable,
