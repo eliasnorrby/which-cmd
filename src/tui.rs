@@ -8,7 +8,7 @@ use crossterm::{
     terminal::{self, ClearType},
     ExecutableCommand, Result as CrosstermResult,
 };
-use dialoguer::FuzzySelect;
+use dialoguer::{theme::ColorfulTheme, FuzzySelect};
 
 use std::io::Write;
 
@@ -264,7 +264,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                         } else if node.has_choices() {
                             terminal.clear_screen()?;
                             terminal.teardown()?;
-                            let selection = FuzzySelect::new()
+                            let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
                                 .with_prompt("What do you choose?")
                                 .items(&node.choices)
                                 .interact()
