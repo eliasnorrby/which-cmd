@@ -127,6 +127,24 @@ fn format_node(node: &ConfigNode, opts: &Options) -> String {
     }
 }
 
+fn highlight_command(command: &str) -> String {
+    let mut highlighted: String = "".to_string();
+    let parts = command.split(' ').collect::<Vec<&str>>();
+    for part in parts.iter() {
+        highlighted.push_str(&format!(
+            "{} ",
+            if part.starts_with('-') {
+                part.cyan()
+            } else if highlighted == "" {
+                part.green()
+            } else {
+                part.yellow()
+            }
+        ));
+    }
+    highlighted
+}
+
 pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::error::Error>> {
     // Initialize terminal
     let mut terminal = Terminal::new(std::io::stdout());
@@ -144,7 +162,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
             terminal.write_line(&format!(
                 "{} {}",
                 "Command:".grey(),
-                compose_command(&path).green()
+                highlight_command(&compose_command(&path))
             ))?;
             terminal.blank_line()?;
             let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
