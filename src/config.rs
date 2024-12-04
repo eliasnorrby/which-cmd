@@ -1,12 +1,12 @@
 use serde::Deserialize;
 use std::fs;
 
-use crate::command_node::CommandNode;
+use crate::config_node::ConfigNode;
 use crate::constants::*;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
-    pub keys: Vec<CommandNode>,
+    pub keys: Vec<ConfigNode>,
 }
 
 impl Config {

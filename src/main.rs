@@ -1,5 +1,5 @@
-mod command_node;
 mod config;
+mod config_node;
 mod constants;
 mod options;
 mod tui;

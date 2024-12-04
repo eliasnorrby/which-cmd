@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::{command_node::CommandNode, options::Options};
+use crate::{config_node::ConfigNode, options::Options};
 
 use crossterm::{
     cursor::{self},
@@ -93,7 +93,7 @@ impl<W: Write> Terminal<W> {
     }
 }
 
-fn pop_to_first_non_is_fleeting(path: &mut Vec<CommandNode>) {
+fn pop_to_first_non_is_fleeting(path: &mut Vec<ConfigNode>) {
     while let Some(node) = path.pop() {
         if !node.is_fleeting {
             path.push(node);
@@ -102,7 +102,7 @@ fn pop_to_first_non_is_fleeting(path: &mut Vec<CommandNode>) {
     }
 }
 
-fn format_node(node: &CommandNode, opts: &Options) -> String {
+fn format_node(node: &ConfigNode, opts: &Options) -> String {
     let sub_keys_count = node.keys.len();
     if sub_keys_count > 0 {
         format!(
@@ -129,7 +129,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
 
     terminal.setup()?;
 
-    let mut path: Vec<CommandNode> = Vec::new();
+    let mut path: Vec<ConfigNode> = Vec::new();
     let mut loop_node_index: Option<usize> = None;
 
     loop {
@@ -312,7 +312,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
     }
 }
 
-fn compose_command(path: &[CommandNode]) -> String {
+fn compose_command(path: &[ConfigNode]) -> String {
     // Start building the command from the last anchor point
     let mut command_parts = Vec::new();
     let mut start_index = 0;
@@ -330,11 +330,11 @@ fn compose_command(path: &[CommandNode]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::command_node::CommandNode;
+    use crate::config_node::ConfigNode;
 
     #[test]
     fn test_compose_command_no_anchor() {
-        let node1 = CommandNode {
+        let node1 = ConfigNode {
             key: "g".into(),
             name: "git".into(),
             value: "git".into(),
@@ -345,7 +345,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
         };
-        let node2 = CommandNode {
+        let node2 = ConfigNode {
             key: "s".into(),
             name: "status".into(),
             value: "status".into(),
@@ -363,7 +363,7 @@ mod tests {
 
     #[test]
     fn test_compose_command_with_anchor() {
-        let node1 = CommandNode {
+        let node1 = ConfigNode {
             key: "g".into(),
             name: "git".into(),
             value: "git".into(),
@@ -374,7 +374,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
         };
-        let node2 = CommandNode {
+        let node2 = ConfigNode {
             key: "h".into(),
             name: "GitHub".into(),
             value: "gh".into(),
@@ -385,7 +385,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
         };
-        let node3 = CommandNode {
+        let node3 = ConfigNode {
             key: "p".into(),
             name: "pull request".into(),
             value: "pr".into(),

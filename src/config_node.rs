@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 // TODO: add a unique id built from keys
 #[derive(Debug, Clone, PartialEq)]
-pub struct CommandNode {
+pub struct ConfigNode {
     pub key: String,
     pub name: String,
     pub value: String,
@@ -10,19 +10,19 @@ pub struct CommandNode {
     pub is_fleeting: bool,
     pub is_anchor: bool,
     pub is_loop: bool,
-    pub keys: Vec<CommandNode>,
-    pub choices: Vec<CommandNode>,
+    pub keys: Vec<ConfigNode>,
+    pub choices: Vec<ConfigNode>,
 }
 
-// Implement custom deserialization for CommandNode
-impl<'de> Deserialize<'de> for CommandNode {
-    fn deserialize<D>(deserializer: D) -> Result<CommandNode, D::Error>
+// Implement custom deserialization for ConfigNode
+impl<'de> Deserialize<'de> for ConfigNode {
+    fn deserialize<D>(deserializer: D) -> Result<ConfigNode, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         // Define a helper struct with optional name
         #[derive(Deserialize)]
-        struct CommandNodeHelper {
+        struct ConfigNodeHelper {
             key: String,
             name: Option<String>,
             value: Option<String>,
@@ -35,18 +35,18 @@ impl<'de> Deserialize<'de> for CommandNode {
             #[serde(default)]
             r#loop: bool,
             #[serde(default)]
-            keys: Vec<CommandNode>,
+            keys: Vec<ConfigNode>,
             #[serde(default)]
             choices: Vec<String>,
         }
 
-        let helper = CommandNodeHelper::deserialize(deserializer)?;
+        let helper = ConfigNodeHelper::deserialize(deserializer)?;
         let value = helper.value.unwrap_or_else(|| "".to_string());
         let name = helper.name.unwrap_or_else(|| value.clone());
         let choices = helper
             .choices
             .iter()
-            .map(|choice| CommandNode {
+            .map(|choice| ConfigNode {
                 key: "[choice]".to_string(),
                 name: choice.clone(),
                 value: choice.clone(),
@@ -63,7 +63,7 @@ impl<'de> Deserialize<'de> for CommandNode {
             return Err(serde::de::Error::custom("name must not be empty"));
         }
 
-        Ok(CommandNode {
+        Ok(ConfigNode {
             key: helper.key,
             name,
             value,
@@ -77,7 +77,7 @@ impl<'de> Deserialize<'de> for CommandNode {
     }
 }
 
-impl CommandNode {
+impl ConfigNode {
     pub fn is_leaf(&self) -> bool {
         self.keys.is_empty() && !self.has_choices()
     }
