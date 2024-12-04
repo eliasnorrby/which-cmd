@@ -216,16 +216,24 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
         let num_rows = NUMBER_OF_ROWS;
 
         let current_nodes = if let Some(l) = loop_node_index {
-            &path[l]
-                .keys
-                .iter()
-                .filter(|n| n.is_repeatable || !path.iter().any(|p| p.id == n.id))
-                .cloned()
-                .collect::<Vec<_>>()
+            if let Some(last_node) = path.last() {
+                if last_node.is_leaf() {
+                    path[l]
+                        .keys
+                        .iter()
+                        .filter(|n| n.is_repeatable || !path.iter().any(|p| p.id == n.id))
+                        .cloned()
+                        .collect()
+                } else {
+                    last_node.keys.clone()
+                }
+            } else {
+                config.keys.clone()
+            }
         } else if let Some(last_node) = path.last() {
-            &last_node.keys.to_vec()
+            last_node.keys.clone()
         } else {
-            &config.keys.to_vec()
+            config.keys.clone()
         };
 
         // Sort the current_nodes before displaying them
