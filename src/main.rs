@@ -43,6 +43,8 @@ configured to recognize this flag."
     },
     /// Troubleshoot configuration
     Doctor,
+    /// Get height of TUI, useful for integrations
+    Height,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -53,6 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Commands::Get => commands::get_command()?,
         Commands::Integration { shell } => commands::integration_command(shell)?,
         Commands::Doctor => commands::doctor_command(),
+        Commands::Height => commands::height_command(),
     }
 
     Ok(())
