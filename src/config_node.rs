@@ -1,5 +1,7 @@
 use serde::Deserialize;
 
+use crate::constants::CHOICE_KEY;
+
 #[derive(Debug, Clone)]
 pub struct ConfigNode {
     pub id: String,
@@ -11,7 +13,7 @@ pub struct ConfigNode {
     pub is_anchor: bool,
     pub is_loop: bool,
     pub keys: Vec<ConfigNode>,
-    pub choices: Vec<ConfigNode>,
+    pub choices: Vec<String>,
 }
 
 // Implement custom deserialization for ConfigNode
@@ -43,22 +45,6 @@ impl<'de> Deserialize<'de> for ConfigNode {
         let helper = ConfigNodeHelper::deserialize(deserializer)?;
         let value = helper.value.unwrap_or_else(|| "".to_string());
         let name = helper.name.unwrap_or_else(|| value.clone());
-        let choices = helper
-            .choices
-            .iter()
-            .map(|choice| ConfigNode {
-                id: "".to_string(),
-                key: "[choice]".to_string(),
-                name: choice.clone(),
-                value: choice.clone(),
-                is_immediate: false,
-                is_fleeting: false,
-                is_anchor: false,
-                is_loop: false,
-                keys: vec![],
-                choices: vec![],
-            })
-            .collect();
 
         if name.is_empty() {
             return Err(serde::de::Error::custom("name must not be empty"));
@@ -74,7 +60,7 @@ impl<'de> Deserialize<'de> for ConfigNode {
             is_anchor: helper.anchor,
             is_loop: helper.r#loop,
             keys: helper.keys,
-            choices,
+            choices: helper.choices,
         })
     }
 }
@@ -86,5 +72,34 @@ impl ConfigNode {
 
     pub fn has_choices(&self) -> bool {
         !self.choices.is_empty()
+    }
+
+    pub fn set_id_from_parent(&mut self, parent_id: &str) {
+        self.id = ConfigNode::id_from_parent(parent_id, &self.key);
+    }
+
+    pub fn id_from_parent(parent_id: &str, key: &str) -> String {
+        if parent_id != "" {
+            format!("{}{}", parent_id, key)
+        } else {
+            key.to_string()
+        }
+    }
+
+    pub fn with_selection(&self, choice: usize) -> ConfigNode {
+        let selection = self.choices.get(choice).unwrap();
+
+        ConfigNode {
+            id: ConfigNode::id_from_parent(&self.id, CHOICE_KEY),
+            key: CHOICE_KEY.to_string(),
+            name: selection.to_string(),
+            value: selection.to_string(),
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            keys: vec![],
+            choices: vec![],
+        }
     }
 }

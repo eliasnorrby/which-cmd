@@ -266,17 +266,11 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                             terminal.teardown()?;
                             let selection = FuzzySelect::new()
                                 .with_prompt("What do you choose?")
-                                .items(
-                                    &node
-                                        .choices
-                                        .iter()
-                                        .map(|c| c.name.as_str())
-                                        .collect::<Vec<&str>>(),
-                                )
+                                .items(&node.choices)
                                 .interact()
                                 .unwrap();
                             terminal.setup()?;
-                            path.push(node.choices[selection].clone());
+                            path.push(node.with_selection(selection));
                         }
                     } else {
                         // Invalid key pressed

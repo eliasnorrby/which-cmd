@@ -36,7 +36,7 @@ impl Config {
         // It should be a concatenation of the keys of all the parent nodes
         // and the key of the current node.
         fn set_id(node: &mut ConfigNode, parent_id: &str) {
-            node.id = format!("{}{}", parent_id, node.key);
+            node.set_id_from_parent(parent_id);
             Config::ensure_unique(&node.id, node.keys.iter().map(|node| &node.key).collect());
             for child in node.keys.iter_mut() {
                 set_id(child, &node.id);
