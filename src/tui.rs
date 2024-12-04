@@ -93,7 +93,7 @@ impl<W: Write> Terminal<W> {
     }
 }
 
-fn pop_to_first_non_is_fleeting(path: &mut Vec<&CommandNode>) {
+fn pop_to_first_non_is_fleeting(path: &mut Vec<CommandNode>) {
     while let Some(node) = path.pop() {
         if !node.is_fleeting {
             path.push(node);
@@ -129,9 +129,8 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
 
     terminal.setup()?;
 
-    let mut current_nodes = &config.keys;
-    let mut path: Vec<&CommandNode> = Vec::new();
-    let mut loop_node: Option<&CommandNode> = None;
+    let mut path: Vec<CommandNode> = Vec::new();
+    let mut loop_node_index: Option<usize> = None;
 
     loop {
         terminal.clear_screen()?;
@@ -160,6 +159,14 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
 
         // Define the number of rows
         let num_rows = 4;
+
+        let current_nodes = if let Some(l) = loop_node_index {
+            &path[l].keys.to_vec()
+        } else if let Some(last_node) = path.last() {
+            &last_node.keys.to_vec()
+        } else {
+            &config.keys.to_vec()
+        };
 
         // Sort the current_nodes before displaying them
         let mut sorted_nodes = current_nodes.to_vec();
@@ -239,14 +246,12 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                 KeyCode::Char(c) => {
                     // Handle character input
                     if let Some(node) = current_nodes.iter().find(|n| n.key == c.to_string()) {
-                        path.push(node);
+                        path.push(node.clone());
                         if node.is_loop {
-                            loop_node = Some(node);
+                            loop_node_index = Some(path.len() - 1);
                         }
                         if node.is_leaf() {
-                            if let Some(l) = loop_node {
-                                current_nodes = &l.keys;
-                            } else {
+                            if !loop_node_index.is_some() {
                                 // Build and return the command
                                 let command = compose_command(&path);
                                 terminal.teardown()?;
@@ -271,9 +276,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                                 .interact()
                                 .unwrap();
                             terminal.setup()?;
-                            path.push(&node.choices[selection]);
-                        } else {
-                            current_nodes = &node.keys;
+                            path.push(node.choices[selection].clone());
                         }
                     } else {
                         // Invalid key pressed
@@ -284,19 +287,12 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                     }
                 }
                 KeyCode::Backspace => {
-                    // Handle backspace
-                    if let Some(_) = path.pop() {
+                    if path.pop().is_some() {
                         pop_to_first_non_is_fleeting(&mut path);
+
                         // If loop_node is not contained in path, unset it
-                        if loop_node.is_some_and(|l| !path.contains(&l)) {
-                            loop_node = None;
-                        }
-                        if let Some(l) = loop_node {
-                            current_nodes = &l.keys;
-                        } else if let Some(last_node) = path.last() {
-                            current_nodes = &last_node.keys;
-                        } else {
-                            current_nodes = &config.keys;
+                        if loop_node_index.is_some_and(|l| path.len() <= l) {
+                            loop_node_index = None;
                         }
                     }
                 }
@@ -316,7 +312,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
     }
 }
 
-fn compose_command(path: &[&CommandNode]) -> String {
+fn compose_command(path: &[CommandNode]) -> String {
     // Start building the command from the last anchor point
     let mut command_parts = Vec::new();
     let mut start_index = 0;
@@ -360,7 +356,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
         };
-        let path = vec![&node1, &node2];
+        let path = vec![node1, node2];
         let command = compose_command(&path);
         assert_eq!(command, "git status");
     }
@@ -400,7 +396,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
         };
-        let path = vec![&node1, &node2, &node3];
+        let path = vec![node1, node2, node3];
         let command = compose_command(&path);
         assert_eq!(command, "gh pr");
     }
