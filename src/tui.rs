@@ -216,7 +216,12 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
         let num_rows = NUMBER_OF_ROWS;
 
         let current_nodes = if let Some(l) = loop_node_index {
-            &path[l].keys.to_vec()
+            &path[l]
+                .keys
+                .iter()
+                .filter(|n| !path.iter().any(|p| p.id == n.id))
+                .cloned()
+                .collect::<Vec<_>>()
         } else if let Some(last_node) = path.last() {
             &last_node.keys.to_vec()
         } else {
