@@ -1,8 +1,8 @@
 use serde::Deserialize;
 
-// TODO: add a unique id built from keys
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct ConfigNode {
+    pub id: String,
     pub key: String,
     pub name: String,
     pub value: String,
@@ -47,6 +47,7 @@ impl<'de> Deserialize<'de> for ConfigNode {
             .choices
             .iter()
             .map(|choice| ConfigNode {
+                id: "".to_string(),
                 key: "[choice]".to_string(),
                 name: choice.clone(),
                 value: choice.clone(),
@@ -64,6 +65,7 @@ impl<'de> Deserialize<'de> for ConfigNode {
         }
 
         Ok(ConfigNode {
+            id: "".to_string(),
             key: helper.key,
             name,
             value,

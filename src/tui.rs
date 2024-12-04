@@ -335,6 +335,7 @@ mod tests {
     #[test]
     fn test_compose_command_no_anchor() {
         let node1 = ConfigNode {
+            id: "g".into(),
             key: "g".into(),
             name: "git".into(),
             value: "git".into(),
@@ -346,6 +347,7 @@ mod tests {
             choices: vec![],
         };
         let node2 = ConfigNode {
+            id: "s".into(),
             key: "s".into(),
             name: "status".into(),
             value: "status".into(),
@@ -364,6 +366,7 @@ mod tests {
     #[test]
     fn test_compose_command_with_anchor() {
         let node1 = ConfigNode {
+            id: "g".into(),
             key: "g".into(),
             name: "git".into(),
             value: "git".into(),
@@ -375,6 +378,7 @@ mod tests {
             choices: vec![],
         };
         let node2 = ConfigNode {
+            id: "h".into(),
             key: "h".into(),
             name: "GitHub".into(),
             value: "gh".into(),
@@ -386,6 +390,7 @@ mod tests {
             choices: vec![],
         };
         let node3 = ConfigNode {
+            id: "p".into(),
             key: "p".into(),
             name: "pull request".into(),
             value: "pr".into(),
