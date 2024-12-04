@@ -12,6 +12,7 @@ pub struct ConfigNode {
     pub is_fleeting: bool,
     pub is_anchor: bool,
     pub is_loop: bool,
+    pub is_repeatable: bool,
     pub keys: Vec<ConfigNode>,
     pub choices: Vec<String>,
     pub input_type: Option<InputType>,
@@ -46,6 +47,8 @@ impl<'de> Deserialize<'de> for ConfigNode {
             #[serde(default)]
             keys: Vec<ConfigNode>,
             #[serde(default)]
+            repeatable: bool,
+            #[serde(default)]
             choices: Vec<String>,
             input: Option<InputType>,
         }
@@ -68,6 +71,7 @@ impl<'de> Deserialize<'de> for ConfigNode {
             is_fleeting: helper.fleeting,
             is_anchor: helper.anchor,
             is_loop: helper.r#loop,
+            is_repeatable: helper.repeatable,
             keys: helper.keys,
             choices: helper.choices,
             input_type: helper.input,
@@ -108,6 +112,7 @@ impl ConfigNode {
             is_fleeting: false,
             is_anchor: false,
             is_loop: false,
+            is_repeatable: false,
             keys: vec![],
             choices: vec![],
             input_type: None,
@@ -124,6 +129,7 @@ impl ConfigNode {
             is_fleeting: false,
             is_anchor: false,
             is_loop: false,
+            is_repeatable: false,
             keys: vec![],
             choices: vec![],
             input_type: None,

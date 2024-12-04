@@ -219,7 +219,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
             &path[l]
                 .keys
                 .iter()
-                .filter(|n| !path.iter().any(|p| p.id == n.id))
+                .filter(|n| n.is_repeatable || !path.iter().any(|p| p.id == n.id))
                 .cloned()
                 .collect::<Vec<_>>()
         } else if let Some(last_node) = path.last() {
@@ -399,6 +399,7 @@ mod tests {
             is_fleeting: false,
             is_anchor: false,
             is_loop: false,
+            is_repeatable: false,
             keys: vec![],
             choices: vec![],
             input_type: None,
@@ -412,6 +413,7 @@ mod tests {
             is_fleeting: false,
             is_anchor: false,
             is_loop: false,
+            is_repeatable: false,
             keys: vec![],
             choices: vec![],
             input_type: None,
@@ -432,6 +434,7 @@ mod tests {
             is_fleeting: false,
             is_anchor: false,
             is_loop: false,
+            is_repeatable: false,
             keys: vec![],
             choices: vec![],
             input_type: None,
@@ -445,6 +448,7 @@ mod tests {
             is_fleeting: false,
             is_anchor: true,
             is_loop: false,
+            is_repeatable: false,
             keys: vec![],
             choices: vec![],
             input_type: None,
@@ -458,6 +462,7 @@ mod tests {
             is_fleeting: false,
             is_anchor: false,
             is_loop: false,
+            is_repeatable: false,
             keys: vec![],
             choices: vec![],
             input_type: None,
