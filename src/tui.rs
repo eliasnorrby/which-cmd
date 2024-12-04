@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::constants::NUMBER_OF_ROWS;
 use crate::{
     config_node::{ConfigNode, InputType},
     options::Options,
@@ -160,8 +161,8 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
             terminal.blank_line()?;
         }
 
-        // Define the number of rows
-        let num_rows = 4;
+        // TODO: make configurable
+        let num_rows = NUMBER_OF_ROWS;
 
         let current_nodes = if let Some(l) = loop_node_index {
             &path[l].keys.to_vec()
