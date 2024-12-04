@@ -37,16 +37,33 @@ impl Config {
         // and the key of the current node.
         fn set_id(node: &mut ConfigNode, parent_id: &str) {
             node.id = format!("{}{}", parent_id, node.key);
+            Config::ensure_unique(&node.id, node.keys.iter().map(|node| &node.key).collect());
             for child in node.keys.iter_mut() {
                 set_id(child, &node.id);
             }
         }
+
+        Config::ensure_unique(
+            &"".to_string(),
+            config.keys.iter().map(|node| &node.key).collect(),
+        );
 
         for node in config.keys.iter_mut() {
             set_id(node, "");
         }
 
         Ok(config)
+    }
+
+    fn ensure_unique(parent_id: &String, keys: Vec<&String>) {
+        let mut seen = std::collections::HashSet::new();
+        for key in keys {
+            if seen.contains(key) {
+                eprintln!("Conflicting keys found: {}{}", parent_id, key);
+                panic!("Conflicting keys found");
+            }
+            seen.insert(key);
+        }
     }
 }
 
@@ -136,5 +153,21 @@ keys:
         let git_node = &config.keys[0];
         assert_eq!(git_node.key, "g");
         assert_eq!(git_node.is_loop, true);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_config_parsing_duplicate_ids() {
+        let yaml = r#"
+keys:
+  - key: g
+    value: git
+    keys: 
+      - key: s
+        value: status
+      - key: s
+        value: stash
+"#;
+        let _ = Config::from_contents(yaml).unwrap();
     }
 }
