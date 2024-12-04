@@ -95,6 +95,35 @@ impl<W: Write> Terminal<W> {
         self.writer.flush()?;
         Ok(())
     }
+
+    pub fn select(&mut self, options: &[String]) -> CrosstermResult<usize> {
+        // Disable raw mode because it breaks alignment of the options
+        terminal::disable_raw_mode()?;
+        let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
+            .with_prompt("Choose an option:")
+            .items(options)
+            .interact()
+            .unwrap();
+        terminal::enable_raw_mode()?;
+        // FuzzySelect will show the cursor, so hide it again
+        self.writer.execute(cursor::Hide)?;
+        Ok(selection)
+    }
+
+    pub fn input(&mut self, input_type: &InputType, name: &str) -> CrosstermResult<String> {
+        let input = match input_type {
+            InputType::Text => dialoguer::Input::<String>::new()
+                .with_prompt(format!(" Enter {}", name))
+                .interact()
+                .unwrap(),
+            InputType::Number => dialoguer::Input::<i32>::new()
+                .with_prompt(format!(" Enter {}", name))
+                .interact()
+                .unwrap()
+                .to_string(),
+        };
+        Ok(input)
+    }
 }
 
 fn pop_to_first_non_is_fleeting(path: &mut Vec<ConfigNode>) {
@@ -289,43 +318,16 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                             }
                         } else if node.has_choices() {
                             terminal.clear_screen()?;
-                            terminal.teardown()?;
-                            let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
-                                .with_prompt(format!(
-                                    "{}\n\n {}",
-                                    command_indicator(&path),
-                                    "Choose an option:"
-                                ))
-                                .items(&node.choices)
-                                .interact()
-                                .unwrap();
-                            terminal.setup()?;
+                            terminal.write_line(&command_indicator(&path))?;
+                            terminal.blank_line()?;
+                            let selection = terminal.select(&node.choices)?;
                             path.push(node.with_selection(selection));
                         } else if let Some(input_type) = &node.input_type {
                             terminal.clear_screen()?;
-                            terminal.teardown()?;
-                            match input_type {
-                                InputType::Text => {
-                                    let input = dialoguer::Input::<String>::new()
-                                        .with_prompt(format!(
-                                            " {}\n\n {} {}",
-                                            command_indicator(&path),
-                                            "Enter",
-                                            node.name
-                                        ))
-                                        .interact()?;
-                                    terminal.setup()?;
-                                    path.push(node.with_input(&input));
-                                }
-                                InputType::Number => {
-                                    let input = dialoguer::Input::<i32>::new()
-                                        .with_prompt(&format!("Enter {}", node.name))
-                                        .interact()?;
-                                    terminal.setup()?;
-                                    path.push(node.with_input(&input.to_string()));
-                                }
-                            }
-                            terminal.setup()?;
+                            terminal.write_line(&command_indicator(&path))?;
+                            terminal.blank_line()?;
+                            let input = terminal.input(input_type, &node.name)?;
+                            path.push(node.with_input(&input.to_string()));
                         }
                     } else {
                         // Invalid key pressed
