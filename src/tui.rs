@@ -145,6 +145,14 @@ fn highlight_command(command: &str) -> String {
     highlighted
 }
 
+fn command_indicator(path: &[ConfigNode]) -> String {
+    format!(
+        "{} {}",
+        "Command:".grey(),
+        highlight_command(&compose_command(&path))
+    )
+}
+
 pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::error::Error>> {
     // Initialize terminal
     let mut terminal = Terminal::new(std::io::stdout());
@@ -159,11 +167,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
 
         // Display the current path
         if !path.is_empty() {
-            terminal.write_line(&format!(
-                "{} {}",
-                "Command:".grey(),
-                highlight_command(&compose_command(&path))
-            ))?;
+            terminal.write_line(&command_indicator(&path))?;
             terminal.blank_line()?;
             let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
             terminal.write_line(&format!(
@@ -287,7 +291,11 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                             terminal.clear_screen()?;
                             terminal.teardown()?;
                             let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
-                                .with_prompt("What do you choose?")
+                                .with_prompt(format!(
+                                    "{}\n\n {}",
+                                    command_indicator(&path),
+                                    "Choose an option:"
+                                ))
                                 .items(&node.choices)
                                 .interact()
                                 .unwrap();
@@ -299,7 +307,12 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                             match input_type {
                                 InputType::Text => {
                                     let input = dialoguer::Input::<String>::new()
-                                        .with_prompt(&format!("Enter {}", node.name))
+                                        .with_prompt(format!(
+                                            " {}\n\n {} {}",
+                                            command_indicator(&path),
+                                            "Enter",
+                                            node.name
+                                        ))
                                         .interact()?;
                                     terminal.setup()?;
                                     path.push(node.with_input(&input));
