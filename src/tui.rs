@@ -18,6 +18,13 @@ use std::io::Write;
 
 const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
 
+// TODO: move somewhere else
+struct SearchNode {
+    id: String,
+    name: String,
+    command: String,
+}
+
 struct Terminal<W: Write> {
     writer: W,
 }
@@ -109,6 +116,7 @@ impl<W: Write> Terminal<W> {
         let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Choose an option:")
             .items(options)
+            .highlight_matches(false)
             .interact_opt()
             .unwrap();
         terminal::enable_raw_mode()?;
@@ -161,6 +169,39 @@ fn format_node(node: &ConfigNode, opts: &Options) -> String {
             if include_immediate_tag { "↵" } else { "" }
         )
     }
+}
+
+fn format_all_nodes(nodes: &[ConfigNode]) -> Vec<SearchNode> {
+    let mut formatted = vec![];
+    for node in nodes {
+        let path = vec![node.clone()];
+        let sublist = format_nodes_recursive(&node.keys, &path);
+        formatted.extend(sublist);
+    }
+    formatted
+}
+
+fn format_nodes_recursive(nodes: &[ConfigNode], path: &[ConfigNode]) -> Vec<SearchNode> {
+    let mut list = vec![];
+    for node in nodes {
+        // compase command from path plus node
+        let newpath = path
+            .iter()
+            .chain(std::iter::once(node))
+            .cloned()
+            .collect::<Vec<ConfigNode>>();
+        let command = compose_command(&newpath);
+        list.push(SearchNode {
+            id: node.id.clone(),
+            name: node.name.clone(),
+            command,
+        });
+        if node.keys.len() > 0 {
+            let sublist = format_nodes_recursive(&node.keys, &newpath);
+            list.extend(sublist);
+        }
+    }
+    list
 }
 
 fn highlight_command(command: &str) -> String {
@@ -348,6 +389,42 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                             terminal.prepare_for_input(&command_indicator(&path))?;
                             let input = terminal.input(input_type, &node.name)?;
                             path.push(node.with_input(&input.to_string()));
+                        }
+                        // TODO: forbid binding /
+                    } else if c == '/' {
+                        // Search
+                        terminal.prepare_for_input(&command_indicator(&path))?;
+                        let options = format_all_nodes(&config.keys);
+                        let textoptions: Vec<String> = options
+                            .iter()
+                            .map(|node| node.command.clone())
+                            .map(|c| highlight_command(&c))
+                            .collect();
+                        let selection = terminal.select(textoptions.as_slice())?;
+                        if let Some(selection) = selection {
+                            let selected_node = &options[selection];
+
+                            // for part in selected_node.id.split("") {
+                            //     if part != "" {
+                            //         if let Some(node) = current_nodes.iter().find(|n| n.key == part)
+                            //         {
+                            //             path.push(node.clone());
+                            //         }
+                            //     }
+                            // }
+
+                            // if node.is_leaf() {
+                            //     // Build and return the command
+                            //     let command = compose_command(&path);
+                            //     terminal.teardown()?;
+                            //     return if opts.print_immediate_tag && node.is_immediate {
+                            //         Ok(format!("{} {}", IMMEDIATE_PREFIX, command))
+                            //     } else {
+                            //         Ok(command)
+                            //     };
+                            // }
+                        } else {
+                            pop_to_first_non_is_fleeting(&mut path);
                         }
                     } else {
                         // Invalid key pressed
