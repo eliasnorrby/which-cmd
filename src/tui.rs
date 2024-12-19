@@ -96,7 +96,14 @@ impl<W: Write> Terminal<W> {
         Ok(())
     }
 
-    pub fn select(&mut self, options: &[String]) -> CrosstermResult<usize> {
+    pub fn prepare_for_input(&mut self, content: &str) -> CrosstermResult<()> {
+        self.clear_screen()?;
+        self.write_line(content)?;
+        self.blank_line()?;
+        Ok(())
+    }
+
+    pub fn select(&mut self, options: &[String]) -> CrosstermResult<Option<usize>> {
         // Disable raw mode because it breaks alignment of the options
         terminal::disable_raw_mode()?;
         let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
@@ -330,15 +337,11 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                                 };
                             }
                         } else if node.has_choices() {
-                            terminal.clear_screen()?;
-                            terminal.write_line(&command_indicator(&path))?;
-                            terminal.blank_line()?;
+                            terminal.prepare_for_input(&command_indicator(&path))?;
                             let selection = terminal.select(&node.choices)?;
                             path.push(node.with_selection(selection));
                         } else if let Some(input_type) = &node.input_type {
-                            terminal.clear_screen()?;
-                            terminal.write_line(&command_indicator(&path))?;
-                            terminal.blank_line()?;
+                            terminal.prepare_for_input(&command_indicator(&path))?;
                             let input = terminal.input(input_type, &node.name)?;
                             path.push(node.with_input(&input.to_string()));
                         }
