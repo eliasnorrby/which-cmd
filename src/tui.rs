@@ -394,7 +394,8 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                     } else if c == '/' {
                         // Search
                         terminal.prepare_for_input(&command_indicator(&path))?;
-                        let options = format_all_nodes(&config.keys);
+                        let options =
+                            format_all_nodes(if path.len() > 0 { &path } else { &config.keys });
                         let textoptions: Vec<String> = options
                             .iter()
                             .map(|node| node.command.clone())
@@ -404,25 +405,16 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                         if let Some(selection) = selection {
                             let selected_node = &options[selection];
 
-                            // for part in selected_node.id.split("") {
-                            //     if part != "" {
-                            //         if let Some(node) = current_nodes.iter().find(|n| n.key == part)
-                            //         {
-                            //             path.push(node.clone());
-                            //         }
-                            //     }
-                            // }
-
-                            // if node.is_leaf() {
-                            //     // Build and return the command
-                            //     let command = compose_command(&path);
-                            //     terminal.teardown()?;
-                            //     return if opts.print_immediate_tag && node.is_immediate {
-                            //         Ok(format!("{} {}", IMMEDIATE_PREFIX, command))
-                            //     } else {
-                            //         Ok(command)
-                            //     };
-                            // }
+                            path = vec![];
+                            let mut lookup = config.keys.clone();
+                            for part in selected_node.id.split("") {
+                                if part != "" {
+                                    if let Some(node) = lookup.iter().find(|n| n.key == part) {
+                                        path.push(node.clone());
+                                        lookup = node.keys.clone();
+                                    }
+                                }
+                            }
                         } else {
                             pop_to_first_non_is_fleeting(&mut path);
                         }
