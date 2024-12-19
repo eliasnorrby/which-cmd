@@ -109,7 +109,7 @@ impl<W: Write> Terminal<W> {
         let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Choose an option:")
             .items(options)
-            .interact()
+            .interact_opt()
             .unwrap();
         terminal::enable_raw_mode()?;
         // FuzzySelect will show the cursor, so hide it again
@@ -339,7 +339,11 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                         } else if node.has_choices() {
                             terminal.prepare_for_input(&command_indicator(&path))?;
                             let selection = terminal.select(&node.choices)?;
-                            path.push(node.with_selection(selection));
+                            if let Some(selection) = selection {
+                                path.push(node.with_selection(selection));
+                            } else {
+                                pop_to_first_non_is_fleeting(&mut path);
+                            }
                         } else if let Some(input_type) = &node.input_type {
                             terminal.prepare_for_input(&command_indicator(&path))?;
                             let input = terminal.input(input_type, &node.name)?;
