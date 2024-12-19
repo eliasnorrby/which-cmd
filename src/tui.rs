@@ -116,7 +116,7 @@ impl<W: Write> Terminal<W> {
         let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Choose an option:")
             .items(options)
-            .highlight_matches(false)
+            .highlight_matches(true)
             .interact_opt()
             .unwrap();
         terminal::enable_raw_mode()?;
@@ -179,6 +179,35 @@ fn format_all_nodes(nodes: &[ConfigNode]) -> Vec<SearchNode> {
         formatted.extend(sublist);
     }
     formatted
+}
+
+fn formatted_search_options(nodes: &Vec<SearchNode>) -> Vec<String> {
+    let longest_command = nodes
+        .iter()
+        // .map(|node| highlight_command(&node.command))
+        // .map(|command| command.len())
+        .map(|node| node.command.len())
+        .max()
+        .unwrap_or(0);
+    let textoptions: Vec<String> = nodes
+        .iter()
+        .map(|n| format_single_option(n, longest_command))
+        .collect();
+    textoptions
+}
+
+fn format_single_option(node: &SearchNode, length: usize) -> String {
+    format!(
+        "{:<length$} {}",
+        // highlight_command(&node.command),
+        &node.command,
+        node.id
+            .chars()
+            .map(|c| c.to_string())
+            .collect::<Vec<_>>()
+            .join(" > "),
+        length = length
+    )
 }
 
 fn format_nodes_recursive(nodes: &[ConfigNode], path: &[ConfigNode]) -> Vec<SearchNode> {
@@ -396,11 +425,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                         terminal.prepare_for_input(&command_indicator(&path))?;
                         let options =
                             format_all_nodes(if path.len() > 0 { &path } else { &config.keys });
-                        let textoptions: Vec<String> = options
-                            .iter()
-                            .map(|node| node.command.clone())
-                            .map(|c| highlight_command(&c))
-                            .collect();
+                        let textoptions = formatted_search_options(&options);
                         let selection = terminal.select(textoptions.as_slice())?;
                         if let Some(selection) = selection {
                             let selected_node = &options[selection];
