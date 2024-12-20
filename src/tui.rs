@@ -115,7 +115,6 @@ impl<W: Write> Terminal<W> {
         let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Choose an option:")
             .items(options)
-            .highlight_matches(true)
             .interact_opt()
             .unwrap();
         terminal::enable_raw_mode()?;
@@ -183,8 +182,6 @@ fn format_all_nodes(nodes: &[ConfigNode]) -> Vec<SearchNode> {
 fn formatted_search_options(nodes: &Vec<SearchNode>) -> Vec<String> {
     let longest_command = nodes
         .iter()
-        // .map(|node| highlight_command(&node.command))
-        // .map(|command| command.len())
         .map(|node| node.command.len())
         .max()
         .unwrap_or(0);
@@ -198,7 +195,6 @@ fn formatted_search_options(nodes: &Vec<SearchNode>) -> Vec<String> {
 fn format_single_option(node: &SearchNode, length: usize) -> String {
     format!(
         "{:<length$} {}",
-        // highlight_command(&node.command),
         &node.command,
         node.id
             .chars()
@@ -212,7 +208,6 @@ fn format_single_option(node: &SearchNode, length: usize) -> String {
 fn format_nodes_recursive(nodes: &[ConfigNode], path: &[ConfigNode]) -> Vec<SearchNode> {
     let mut list = vec![];
     for node in nodes {
-        // compase command from path plus node
         let newpath = path
             .iter()
             .chain(std::iter::once(node))
