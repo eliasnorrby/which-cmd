@@ -1,6 +1,6 @@
 mod config;
-mod config_node;
 mod constants;
+mod node;
 mod options;
 mod search;
 mod terminal;

@@ -1,12 +1,12 @@
 use serde::Deserialize;
 use std::fs;
 
-use crate::config_node::ConfigNode;
 use crate::constants::*;
+use crate::node::Node;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
-    pub keys: Vec<ConfigNode>,
+    pub keys: Vec<Node>,
 }
 
 impl Config {
@@ -35,7 +35,7 @@ impl Config {
         // Recursively loop through the config and set the id of each node.
         // It should be a concatenation of the keys of all the parent nodes
         // and the key of the current node.
-        fn set_id(node: &mut ConfigNode, parent_id: &str) {
+        fn set_id(node: &mut Node, parent_id: &str) {
             node.set_id_from_parent(parent_id);
             Config::ensure_unique(&node.id, node.keys.iter().map(|node| &node.key).collect());
             for child in node.keys.iter_mut() {
@@ -162,7 +162,7 @@ keys:
 keys:
   - key: g
     value: git
-    keys: 
+    keys:
       - key: s
         value: status
       - key: s

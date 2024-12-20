@@ -1,4 +1,4 @@
-use crate::config_node::InputType;
+use crate::node::InputType;
 
 use crossterm::{
     cursor::{self},

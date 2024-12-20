@@ -3,7 +3,7 @@ use serde::Deserialize;
 use crate::constants::{CHOICE_KEY, INPUT_KEY};
 
 #[derive(Debug, Clone)]
-pub struct ConfigNode {
+pub struct Node {
     pub id: String,
     pub key: String,
     pub name: String,
@@ -13,7 +13,7 @@ pub struct ConfigNode {
     pub is_anchor: bool,
     pub is_loop: bool,
     pub is_repeatable: bool,
-    pub keys: Vec<ConfigNode>,
+    pub keys: Vec<Node>,
     pub choices: Vec<String>,
     pub input_type: Option<InputType>,
 }
@@ -24,15 +24,15 @@ pub enum InputType {
     Number,
 }
 
-// Implement custom deserialization for ConfigNode
-impl<'de> Deserialize<'de> for ConfigNode {
-    fn deserialize<D>(deserializer: D) -> Result<ConfigNode, D::Error>
+// Implement custom deserialization for Node
+impl<'de> Deserialize<'de> for Node {
+    fn deserialize<D>(deserializer: D) -> Result<Node, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         // Define a helper struct with optional name
         #[derive(Deserialize)]
-        struct ConfigNodeHelper {
+        struct NodeHelper {
             key: String,
             name: Option<String>,
             value: Option<String>,
@@ -45,7 +45,7 @@ impl<'de> Deserialize<'de> for ConfigNode {
             #[serde(default)]
             r#loop: bool,
             #[serde(default)]
-            keys: Vec<ConfigNode>,
+            keys: Vec<Node>,
             #[serde(default)]
             repeatable: bool,
             #[serde(default)]
@@ -53,7 +53,7 @@ impl<'de> Deserialize<'de> for ConfigNode {
             input: Option<InputType>,
         }
 
-        let helper = ConfigNodeHelper::deserialize(deserializer)?;
+        let helper = NodeHelper::deserialize(deserializer)?;
         let value = helper.value.unwrap_or_else(|| "".to_string());
         let name = helper.name.unwrap_or_else(|| value.clone());
 
@@ -61,7 +61,7 @@ impl<'de> Deserialize<'de> for ConfigNode {
             return Err(serde::de::Error::custom("name must not be empty"));
         }
 
-        Ok(ConfigNode {
+        Ok(Node {
             // Initialize id with empty string. This will be set later by traversing the tree.
             id: "".to_string(),
             key: helper.key,
@@ -79,7 +79,7 @@ impl<'de> Deserialize<'de> for ConfigNode {
     }
 }
 
-impl ConfigNode {
+impl Node {
     pub fn is_leaf(&self) -> bool {
         self.keys.is_empty() && !self.has_choices() && !self.input_type.is_some()
     }
@@ -89,7 +89,7 @@ impl ConfigNode {
     }
 
     pub fn set_id_from_parent(&mut self, parent_id: &str) {
-        self.id = ConfigNode::id_from_parent(parent_id, &self.key);
+        self.id = Node::id_from_parent(parent_id, &self.key);
     }
 
     pub fn id_from_parent(parent_id: &str, key: &str) -> String {
@@ -100,11 +100,11 @@ impl ConfigNode {
         }
     }
 
-    pub fn with_selection(&self, choice: usize) -> ConfigNode {
+    pub fn with_selection(&self, choice: usize) -> Node {
         let selection = self.choices.get(choice).unwrap();
 
-        ConfigNode {
-            id: ConfigNode::id_from_parent(&self.id, CHOICE_KEY),
+        Node {
+            id: Node::id_from_parent(&self.id, CHOICE_KEY),
             key: CHOICE_KEY.to_string(),
             name: selection.to_string(),
             value: selection.to_string(),
@@ -119,9 +119,9 @@ impl ConfigNode {
         }
     }
 
-    pub fn with_input(&self, input: &str) -> ConfigNode {
-        ConfigNode {
-            id: ConfigNode::id_from_parent(&self.id, input),
+    pub fn with_input(&self, input: &str) -> Node {
+        Node {
+            id: Node::id_from_parent(&self.id, input),
             key: INPUT_KEY.to_string(),
             name: input.to_string(),
             value: input.to_string(),

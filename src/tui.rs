@@ -1,6 +1,6 @@
 use crate::config::Config;
-use crate::config_node::ConfigNode;
 use crate::constants::NUMBER_OF_ROWS;
+use crate::node::Node;
 use crate::options::Options;
 use crate::search::{format_search_options, SearchNode};
 use crate::terminal::Terminal;
@@ -12,7 +12,7 @@ use crossterm::{
 
 const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
 
-fn pop_to_first_non_is_fleeting(path: &mut Vec<ConfigNode>) {
+fn pop_to_first_non_is_fleeting(path: &mut Vec<Node>) {
     while let Some(node) = path.pop() {
         if !node.is_fleeting {
             path.push(node);
@@ -21,7 +21,7 @@ fn pop_to_first_non_is_fleeting(path: &mut Vec<ConfigNode>) {
     }
 }
 
-fn format_node(node: &ConfigNode, opts: &Options) -> String {
+fn format_node(node: &Node, opts: &Options) -> String {
     let sub_keys_count = node.keys.len();
     if sub_keys_count > 0 {
         format!(
@@ -42,7 +42,7 @@ fn format_node(node: &ConfigNode, opts: &Options) -> String {
     }
 }
 
-pub fn format_all_nodes(nodes: &[ConfigNode]) -> Vec<SearchNode> {
+pub fn format_all_nodes(nodes: &[Node]) -> Vec<SearchNode> {
     let mut formatted = vec![];
     for node in nodes {
         let path = vec![node.clone()];
@@ -52,14 +52,14 @@ pub fn format_all_nodes(nodes: &[ConfigNode]) -> Vec<SearchNode> {
     formatted
 }
 
-pub fn format_nodes_recursive(nodes: &[ConfigNode], path: &[ConfigNode]) -> Vec<SearchNode> {
+pub fn format_nodes_recursive(nodes: &[Node], path: &[Node]) -> Vec<SearchNode> {
     let mut list = vec![];
     for node in nodes {
         let newpath = path
             .iter()
             .chain(std::iter::once(node))
             .cloned()
-            .collect::<Vec<ConfigNode>>();
+            .collect::<Vec<Node>>();
         let command = compose_command(&newpath);
         list.push(SearchNode {
             id: node.id.clone(),
@@ -91,7 +91,7 @@ fn highlight_command(command: &str) -> String {
     highlighted
 }
 
-fn command_indicator(path: &[ConfigNode]) -> String {
+fn command_indicator(path: &[Node]) -> String {
     format!(
         "{} {}",
         "Command:".grey(),
@@ -105,7 +105,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
 
     terminal.setup()?;
 
-    let mut path: Vec<ConfigNode> = Vec::new();
+    let mut path: Vec<Node> = Vec::new();
     let mut loop_node_index: Option<usize> = None;
 
     loop {
@@ -317,7 +317,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
     }
 }
 
-fn compose_command(path: &[ConfigNode]) -> String {
+fn compose_command(path: &[Node]) -> String {
     // Start building the command from the last anchor point
     let mut command_parts = Vec::new();
     let mut start_index = 0;
@@ -335,11 +335,11 @@ fn compose_command(path: &[ConfigNode]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config_node::ConfigNode;
+    use crate::node::Node;
 
     #[test]
     fn test_compose_command_no_anchor() {
-        let node1 = ConfigNode {
+        let node1 = Node {
             id: "g".into(),
             key: "g".into(),
             name: "git".into(),
@@ -353,7 +353,7 @@ mod tests {
             choices: vec![],
             input_type: None,
         };
-        let node2 = ConfigNode {
+        let node2 = Node {
             id: "s".into(),
             key: "s".into(),
             name: "status".into(),
@@ -374,7 +374,7 @@ mod tests {
 
     #[test]
     fn test_compose_command_with_anchor() {
-        let node1 = ConfigNode {
+        let node1 = Node {
             id: "g".into(),
             key: "g".into(),
             name: "git".into(),
@@ -388,7 +388,7 @@ mod tests {
             choices: vec![],
             input_type: None,
         };
-        let node2 = ConfigNode {
+        let node2 = Node {
             id: "h".into(),
             key: "h".into(),
             name: "GitHub".into(),
@@ -402,7 +402,7 @@ mod tests {
             choices: vec![],
             input_type: None,
         };
-        let node3 = ConfigNode {
+        let node3 = Node {
             id: "p".into(),
             key: "p".into(),
             name: "pull request".into(),
