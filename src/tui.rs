@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::constants::NUMBER_OF_ROWS;
+use crate::search::{formatted_search_options, SearchNode};
 use crate::terminal::Terminal;
 use crate::{config_node::ConfigNode, options::Options};
 
@@ -9,12 +10,6 @@ use crossterm::{
 };
 
 const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
-
-// TODO: move somewhere else
-struct SearchNode {
-    id: String,
-    command: String,
-}
 
 fn pop_to_first_non_is_fleeting(path: &mut Vec<ConfigNode>) {
     while let Some(node) = path.pop() {
@@ -46,7 +41,7 @@ fn format_node(node: &ConfigNode, opts: &Options) -> String {
     }
 }
 
-fn format_all_nodes(nodes: &[ConfigNode]) -> Vec<SearchNode> {
+pub fn format_all_nodes(nodes: &[ConfigNode]) -> Vec<SearchNode> {
     let mut formatted = vec![];
     for node in nodes {
         let path = vec![node.clone()];
@@ -56,33 +51,7 @@ fn format_all_nodes(nodes: &[ConfigNode]) -> Vec<SearchNode> {
     formatted
 }
 
-fn formatted_search_options(nodes: &Vec<SearchNode>) -> Vec<String> {
-    let longest_command = nodes
-        .iter()
-        .map(|node| node.command.len())
-        .max()
-        .unwrap_or(0);
-    let textoptions: Vec<String> = nodes
-        .iter()
-        .map(|n| format_single_option(n, longest_command))
-        .collect();
-    textoptions
-}
-
-fn format_single_option(node: &SearchNode, length: usize) -> String {
-    format!(
-        "{:<length$} {}",
-        &node.command,
-        node.id
-            .chars()
-            .map(|c| c.to_string())
-            .collect::<Vec<_>>()
-            .join(" > "),
-        length = length
-    )
-}
-
-fn format_nodes_recursive(nodes: &[ConfigNode], path: &[ConfigNode]) -> Vec<SearchNode> {
+pub fn format_nodes_recursive(nodes: &[ConfigNode], path: &[ConfigNode]) -> Vec<SearchNode> {
     let mut list = vec![];
     for node in nodes {
         let newpath = path
