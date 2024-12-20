@@ -170,4 +170,21 @@ keys:
 "#;
         let _ = Config::from_contents(yaml).unwrap();
     }
+
+    #[test]
+    #[should_panic]
+    fn test_config_more_than_one_action() {
+        let yaml = r#"
+keys:
+  - key: g
+    value: git
+    choices:
+      - option1
+      - option2
+    keys:
+      - key: s
+        value: status
+"#;
+        let _ = Config::from_contents(yaml).unwrap();
+    }
 }

@@ -61,6 +61,22 @@ impl<'de> Deserialize<'de> for Node {
             return Err(serde::de::Error::custom("name must not be empty"));
         }
 
+        if [
+            !helper.choices.is_empty(),
+            helper.input.is_some(),
+            !helper.keys.is_empty(),
+        ]
+        .iter()
+        .filter(|&&x| x)
+        .count()
+            > 1
+        {
+            return Err(serde::de::Error::custom(format!(
+                "node must have only one of choices, input, or keys: {}",
+                name
+            )));
+        }
+
         Ok(Node {
             // Initialize id with empty string. This will be set later by traversing the tree.
             id: "".to_string(),
