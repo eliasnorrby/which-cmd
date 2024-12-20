@@ -1,3 +1,15 @@
-id: http://which-cmd.tool
+id: http://which-cmd.dev
 description: Schema for which-cmd configuration files
 type: object
+properties:
+  keys:
+    type: array
+    items:
+      $ref: "#/definitions/Node"
+definitions:
+  Node:
+    type: object
+    properties:
+      key:
+        type: string
+        pattern: ^.$
