@@ -97,7 +97,7 @@ impl<'de> Deserialize<'de> for Node {
 
 impl Node {
     pub fn is_leaf(&self) -> bool {
-        self.keys.is_empty() && !self.has_choices() && !self.input_type.is_some()
+        self.keys.is_empty() && !self.has_choices() && self.input_type.is_none()
     }
 
     pub fn has_choices(&self) -> bool {
@@ -109,7 +109,7 @@ impl Node {
     }
 
     pub fn id_from_parent(parent_id: &str, key: &str) -> String {
-        if parent_id != "" {
+        if !parent_id.is_empty() {
             format!("{}{}", parent_id, key)
         } else {
             key.to_string()

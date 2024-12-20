@@ -42,7 +42,7 @@ fn highlight_command(command: &str) -> String {
             "{} ",
             if part.starts_with('-') {
                 part.cyan()
-            } else if highlighted == "" {
+            } else if highlighted.is_empty() {
                 part.green()
             } else {
                 part.yellow()
@@ -56,7 +56,7 @@ fn command_indicator(path: &[Node]) -> String {
     format!(
         "{} {}",
         "Command:".grey(),
-        highlight_command(&compose_command(&path))
+        highlight_command(&compose_command(path))
     )
 }
 
@@ -197,7 +197,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                             loop_node_index = Some(path.len() - 1);
                         }
                         if node.is_leaf() {
-                            if !loop_node_index.is_some() {
+                            if loop_node_index.is_none() {
                                 // Build and return the command
                                 let command = compose_command(&path);
                                 terminal.teardown()?;

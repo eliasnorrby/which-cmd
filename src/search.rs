@@ -5,7 +5,7 @@ pub struct SearchNode {
     pub command: String,
 }
 
-pub fn format_search_options(nodes: &Vec<SearchNode>) -> Vec<String> {
+pub fn format_search_options(nodes: &[SearchNode]) -> Vec<String> {
     let longest_command = nodes
         .iter()
         .map(|node| node.command.len())

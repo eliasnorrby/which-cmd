@@ -11,7 +11,7 @@ pub fn doctor_command() {
 
     let search_options = get_search_options(&config.keys);
 
-    if search_options.iter().find(|n| n.id.contains('/')).is_some() {
+    if search_options.iter().any(|n| n.id.contains('/')) {
         eprintln!("Warning: found node bound to the '/' character, search will be unavailable.");
     }
 

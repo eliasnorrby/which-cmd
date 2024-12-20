@@ -91,7 +91,7 @@ keys:
         assert_eq!(git_node.name, "git");
         assert_eq!(git_node.value, "git");
         assert_eq!(git_node.keys.len(), 1);
-        assert_eq!(git_node.is_loop, false);
+        assert!(!git_node.is_loop);
         let status_node = &git_node.keys[0];
         assert_eq!(status_node.id, "gs");
         assert_eq!(status_node.key, "s");
@@ -152,7 +152,7 @@ keys:
         assert_eq!(config.keys.len(), 1);
         let git_node = &config.keys[0];
         assert_eq!(git_node.key, "g");
-        assert_eq!(git_node.is_loop, true);
+        assert!(git_node.is_loop);
     }
 
     #[test]
