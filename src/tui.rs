@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::constants::NUMBER_OF_ROWS;
-use crate::search::{formatted_search_options, SearchNode};
+use crate::search::{format_search_options, SearchNode};
 use crate::terminal::Terminal;
 use crate::{config_node::ConfigNode, options::Options};
 
@@ -264,7 +264,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                         terminal.prepare_for_input(&command_indicator(&path))?;
                         let options =
                             format_all_nodes(if path.len() > 0 { &path } else { &config.keys });
-                        let textoptions = formatted_search_options(&options);
+                        let textoptions = format_search_options(&options);
                         let selection = terminal.select(textoptions.as_slice())?;
                         if let Some(selection) = selection {
                             let selected_node = &options[selection];

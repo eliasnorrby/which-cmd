@@ -1,10 +1,9 @@
-// TODO: move somewhere else
 pub struct SearchNode {
     pub id: String,
     pub command: String,
 }
 
-pub fn formatted_search_options(nodes: &Vec<SearchNode>) -> Vec<String> {
+pub fn format_search_options(nodes: &Vec<SearchNode>) -> Vec<String> {
     let longest_command = nodes
         .iter()
         .map(|node| node.command.len())
@@ -12,12 +11,12 @@ pub fn formatted_search_options(nodes: &Vec<SearchNode>) -> Vec<String> {
         .unwrap_or(0);
     let textoptions: Vec<String> = nodes
         .iter()
-        .map(|n| format_single_option(n, longest_command))
+        .map(|n| format_single_search_option(n, longest_command))
         .collect();
     textoptions
 }
 
-pub fn format_single_option(node: &SearchNode, length: usize) -> String {
+pub fn format_single_search_option(node: &SearchNode, command_length: usize) -> String {
     format!(
         "{:<length$} {}",
         &node.command,
@@ -26,6 +25,6 @@ pub fn format_single_option(node: &SearchNode, length: usize) -> String {
             .map(|c| c.to_string())
             .collect::<Vec<_>>()
             .join(" > "),
-        length = length
+        length = command_length
     )
 }
