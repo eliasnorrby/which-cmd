@@ -220,7 +220,6 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                             let input = terminal.input(input_type, &node.name)?;
                             path.push(node.with_input(&input.to_string()));
                         }
-                        // TODO: forbid or warn binding /
                     } else if c == '/' {
                         // Search
                         terminal.prepare_for_input(&command_indicator(&path))?;
