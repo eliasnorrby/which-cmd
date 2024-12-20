@@ -224,24 +224,24 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                     } else if c == '/' {
                         // Search
                         terminal.prepare_for_input(&command_indicator(&path))?;
-                        let options = get_search_options(if !path.is_empty() {
-                            &path
+
+                        let options = if path.is_empty() {
+                            get_search_options(&config.keys)
                         } else {
-                            &config.keys
-                        });
-                        let textoptions = format_search_options(&options);
-                        let selection = terminal.select(textoptions.as_slice())?;
-                        if let Some(selection) = selection {
+                            get_search_options(&path)
+                        };
+
+                        let text_options = format_search_options(&options);
+                        if let Some(selection) = terminal.select(text_options.as_slice())? {
                             let selected_node = &options[selection];
 
-                            path = vec![];
-                            let mut lookup = config.keys.clone();
-                            for part in selected_node.id.split("") {
-                                if part != "" {
-                                    if let Some(node) = lookup.iter().find(|n| n.key == part) {
-                                        path.push(node.clone());
-                                        lookup = node.keys.clone();
-                                    }
+                            // Rebuild path based on the selected node ID
+                            path.clear();
+                            let mut lookup = &config.keys;
+                            for part in selected_node.id.split("").filter(|part| !part.is_empty()) {
+                                if let Some(node) = lookup.iter().find(|n| n.key == part) {
+                                    path.push(node.clone());
+                                    lookup = &node.keys;
                                 }
                             }
                         } else {
