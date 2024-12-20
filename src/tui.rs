@@ -1,8 +1,9 @@
 use crate::config::Config;
+use crate::config_node::ConfigNode;
 use crate::constants::NUMBER_OF_ROWS;
+use crate::options::Options;
 use crate::search::{format_search_options, SearchNode};
 use crate::terminal::Terminal;
-use crate::{config_node::ConfigNode, options::Options};
 
 use crossterm::{
     event::{self, Event, KeyCode},
