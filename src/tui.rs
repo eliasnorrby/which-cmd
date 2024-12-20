@@ -21,7 +21,6 @@ const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
 // TODO: move somewhere else
 struct SearchNode {
     id: String,
-    name: String,
     command: String,
 }
 
@@ -222,7 +221,6 @@ fn format_nodes_recursive(nodes: &[ConfigNode], path: &[ConfigNode]) -> Vec<Sear
         let command = compose_command(&newpath);
         list.push(SearchNode {
             id: node.id.clone(),
-            name: node.name.clone(),
             command,
         });
         if node.keys.len() > 0 {
