@@ -2,7 +2,8 @@ use crate::config::Config;
 use crate::constants::NUMBER_OF_ROWS;
 use crate::node::Node;
 use crate::options::Options;
-use crate::search::{format_search_options, SearchNode};
+use crate::path::{compose_command, pop_to_first_non_is_fleeting};
+use crate::search::{format_search_options, get_search_options};
 use crate::terminal::Terminal;
 
 use crossterm::{
@@ -11,15 +12,6 @@ use crossterm::{
 };
 
 const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
-
-fn pop_to_first_non_is_fleeting(path: &mut Vec<Node>) {
-    while let Some(node) = path.pop() {
-        if !node.is_fleeting {
-            path.push(node);
-            break;
-        }
-    }
-}
 
 fn format_node(node: &Node, opts: &Options) -> String {
     let sub_keys_count = node.keys.len();
@@ -40,37 +32,6 @@ fn format_node(node: &Node, opts: &Options) -> String {
             if include_immediate_tag { "↵" } else { "" }
         )
     }
-}
-
-pub fn format_all_nodes(nodes: &[Node]) -> Vec<SearchNode> {
-    let mut formatted = vec![];
-    for node in nodes {
-        let path = vec![node.clone()];
-        let sublist = format_nodes_recursive(&node.keys, &path);
-        formatted.extend(sublist);
-    }
-    formatted
-}
-
-pub fn format_nodes_recursive(nodes: &[Node], path: &[Node]) -> Vec<SearchNode> {
-    let mut list = vec![];
-    for node in nodes {
-        let newpath = path
-            .iter()
-            .chain(std::iter::once(node))
-            .cloned()
-            .collect::<Vec<Node>>();
-        let command = compose_command(&newpath);
-        list.push(SearchNode {
-            id: node.id.clone(),
-            command,
-        });
-        if node.keys.len() > 0 {
-            let sublist = format_nodes_recursive(&node.keys, &newpath);
-            list.extend(sublist);
-        }
-    }
-    list
 }
 
 fn highlight_command(command: &str) -> String {
@@ -125,7 +86,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
         } else {
             terminal.write_line(&format!("{}", "Press a key to select an option".grey()))?;
             terminal.blank_line()?;
-            terminal.write_line(&format!("{}", "Available commands:".grey()))?;
+            terminal.write_line(&format!("{}", "Available keys:".grey()))?;
             terminal.blank_line()?;
         }
 
@@ -259,12 +220,12 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                             let input = terminal.input(input_type, &node.name)?;
                             path.push(node.with_input(&input.to_string()));
                         }
-                        // TODO: forbid binding /
+                        // TODO: forbid or warn binding /
                     } else if c == '/' {
                         // Search
                         terminal.prepare_for_input(&command_indicator(&path))?;
                         let options =
-                            format_all_nodes(if path.len() > 0 { &path } else { &config.keys });
+                            get_search_options(if path.len() > 0 { &path } else { &config.keys });
                         let textoptions = format_search_options(&options);
                         let selection = terminal.select(textoptions.as_slice())?;
                         if let Some(selection) = selection {
@@ -314,110 +275,5 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                 _ => {}
             }
         }
-    }
-}
-
-fn compose_command(path: &[Node]) -> String {
-    // Start building the command from the last anchor point
-    let mut command_parts = Vec::new();
-    let mut start_index = 0;
-    for (i, node) in path.iter().enumerate() {
-        if node.is_anchor {
-            start_index = i;
-        }
-    }
-    for node in &path[start_index..] {
-        command_parts.push(node.value.as_str());
-    }
-    command_parts.join(" ")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::node::Node;
-
-    #[test]
-    fn test_compose_command_no_anchor() {
-        let node1 = Node {
-            id: "g".into(),
-            key: "g".into(),
-            name: "git".into(),
-            value: "git".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let node2 = Node {
-            id: "s".into(),
-            key: "s".into(),
-            name: "status".into(),
-            value: "status".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let path = vec![node1, node2];
-        let command = compose_command(&path);
-        assert_eq!(command, "git status");
-    }
-
-    #[test]
-    fn test_compose_command_with_anchor() {
-        let node1 = Node {
-            id: "g".into(),
-            key: "g".into(),
-            name: "git".into(),
-            value: "git".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let node2 = Node {
-            id: "h".into(),
-            key: "h".into(),
-            name: "GitHub".into(),
-            value: "gh".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: true,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let node3 = Node {
-            id: "p".into(),
-            key: "p".into(),
-            name: "pull request".into(),
-            value: "pr".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let path = vec![node1, node2, node3];
-        let command = compose_command(&path);
-        assert_eq!(command, "gh pr");
     }
 }

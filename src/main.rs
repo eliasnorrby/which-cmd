@@ -2,6 +2,7 @@ mod config;
 mod constants;
 mod node;
 mod options;
+mod path;
 mod search;
 mod terminal;
 mod tui;
