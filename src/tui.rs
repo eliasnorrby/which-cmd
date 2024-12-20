@@ -224,8 +224,11 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                     } else if c == '/' {
                         // Search
                         terminal.prepare_for_input(&command_indicator(&path))?;
-                        let options =
-                            get_search_options(if path.len() > 0 { &path } else { &config.keys });
+                        let options = get_search_options(if !path.is_empty() {
+                            &path
+                        } else {
+                            &config.keys
+                        });
                         let textoptions = format_search_options(&options);
                         let selection = terminal.select(textoptions.as_slice())?;
                         if let Some(selection) = selection {
