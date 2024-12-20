@@ -2,6 +2,7 @@ mod config;
 mod config_node;
 mod constants;
 mod options;
+mod terminal;
 mod tui;
 
 mod commands;
