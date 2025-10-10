@@ -2,6 +2,7 @@ use serde::Deserialize;
 use std::fs;
 
 use crate::constants::*;
+use crate::error::{Result, WhichCmdError};
 use crate::node::Node;
 
 #[derive(Debug, Deserialize)]
@@ -10,60 +11,61 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_file() -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_file() -> Result<Self> {
         let xdg_dirs = xdg::BaseDirectories::with_prefix(PREFIX)?;
-        let config_path = match xdg_dirs.find_config_file(CONFIG_FILE_NAME) {
-            Some(path) => path,
-            None => {
-                eprintln!(
-                    "Configuration file not found at {}{}",
+        let config_path = xdg_dirs.find_config_file(CONFIG_FILE_NAME).ok_or_else(|| {
+            WhichCmdError::ConfigNotFound {
+                path: format!(
+                    "{}/{}",
                     xdg_dirs.get_config_home().display(),
                     CONFIG_FILE_NAME
-                );
-                std::process::exit(1);
+                ),
             }
-        };
+        })?;
 
         let contents = fs::read_to_string(config_path)?;
 
         Config::from_contents(&contents)
     }
 
-    fn from_contents(contents: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    fn from_contents(contents: &str) -> Result<Self> {
         let mut config: Config = serde_yaml::from_str(contents)?;
 
         // Recursively loop through the config and set the id of each node.
         // It should be a concatenation of the keys of all the parent nodes
         // and the key of the current node.
-        fn set_id(node: &mut Node, parent_id: &str) {
+        fn set_id(node: &mut Node, parent_id: &str) -> Result<()> {
             node.set_id_from_parent(parent_id);
-            Config::ensure_unique(&node.id, node.keys.iter().map(|node| &node.key).collect());
+            let keys: Vec<&str> = node.keys.iter().map(|n| n.key.as_str()).collect();
+            Config::ensure_unique(&node.id, &keys)?;
             for child in node.keys.iter_mut() {
-                set_id(child, &node.id);
+                set_id(child, &node.id)?;
             }
+            Ok(())
         }
 
-        Config::ensure_unique(
-            &"".to_string(),
-            config.keys.iter().map(|node| &node.key).collect(),
-        );
+        let keys: Vec<&str> = config.keys.iter().map(|n| n.key.as_str()).collect();
+        Config::ensure_unique("", &keys)?;
 
         for node in config.keys.iter_mut() {
-            set_id(node, "");
+            set_id(node, "")?;
         }
 
         Ok(config)
     }
 
-    fn ensure_unique(parent_id: &String, keys: Vec<&String>) {
+    fn ensure_unique(parent_id: &str, keys: &[&str]) -> Result<()> {
         let mut seen = std::collections::HashSet::new();
-        for key in keys {
+        for &key in keys {
             if seen.contains(key) {
-                eprintln!("Conflicting keys found: {}{}", parent_id, key);
-                panic!("Conflicting keys found");
+                return Err(WhichCmdError::ConflictingKeys(format!(
+                    "{}{}",
+                    parent_id, key
+                )));
             }
             seen.insert(key);
         }
+        Ok(())
     }
 }
 

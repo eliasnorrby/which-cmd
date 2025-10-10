@@ -546,6 +546,7 @@ dependencies = [
  "dialoguer",
  "serde",
  "serde_yaml",
+ "thiserror",
  "xdg",
 ]
 

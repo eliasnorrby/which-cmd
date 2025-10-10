@@ -34,7 +34,7 @@ pub fn format_single_search_option(node: &SearchNode, command_length: usize) -> 
 pub fn get_search_options(nodes: &[Node]) -> Vec<SearchNode> {
     nodes
         .iter()
-        .flat_map(|node| get_search_options_recursively(&node.keys, &[node.clone()]))
+        .flat_map(|node| get_search_options_recursively(&node.keys, std::slice::from_ref(node)))
         .collect()
 }
 

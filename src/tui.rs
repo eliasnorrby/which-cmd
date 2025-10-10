@@ -1,5 +1,6 @@
 use crate::config::Config;
-use crate::constants::NUMBER_OF_ROWS;
+use crate::constants::{ERROR_DISPLAY_DURATION_MS, NUMBER_OF_ROWS};
+use crate::error::{Result, WhichCmdError};
 use crate::node::Node;
 use crate::options::Options;
 use crate::path::{compose_command, pop_to_first_non_is_fleeting};
@@ -60,7 +61,7 @@ fn command_indicator(path: &[Node]) -> String {
     )
 }
 
-pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::error::Error>> {
+pub fn run_tui(config: Config, opts: Options) -> Result<String> {
     // Initialize terminal
     let mut terminal = Terminal::new(std::io::stdout());
 
@@ -183,7 +184,10 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
         terminal.flush()?;
 
         // Wait for an event
-        if let Event::Key(event) = event::read()? {
+        let key_event = event::read()
+            .map_err(|e| WhichCmdError::Terminal(format!("Failed to read event: {}", e)))?;
+
+        if let Event::Key(event) = key_event {
             match event.code {
                 KeyCode::Esc => {
                     terminal.teardown()?;
@@ -210,8 +214,12 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                         } else if node.has_choices() {
                             terminal.prepare_for_input(&command_indicator(&path))?;
                             let selection = terminal.select(&node.choices)?;
-                            if let Some(selection) = selection {
-                                path.push(node.with_selection(selection));
+                            if let Some(selection_idx) = selection {
+                                if let Some(selected_node) = node.with_selection(selection_idx) {
+                                    path.push(selected_node);
+                                } else {
+                                    pop_to_first_non_is_fleeting(&mut path);
+                                }
                             } else {
                                 pop_to_first_non_is_fleeting(&mut path);
                             }
@@ -251,7 +259,9 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                         terminal.start_of_row()?;
                         terminal.write(&format!("{} {}", "Invalid key:".red(), c))?;
                         terminal.flush()?;
-                        std::thread::sleep(std::time::Duration::from_millis(750));
+                        std::thread::sleep(std::time::Duration::from_millis(
+                            ERROR_DISPLAY_DURATION_MS,
+                        ));
                     }
                 }
                 KeyCode::Backspace => {
@@ -265,14 +275,25 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String, Box<dyn std::err
                     }
                 }
                 KeyCode::Enter => {
-                    let command = compose_command(&path);
-                    terminal.teardown()?;
-                    let last_node = path.last().unwrap();
-                    return if opts.print_immediate_tag && last_node.is_immediate {
-                        Ok(format!("{} {}", IMMEDIATE_PREFIX, command))
+                    if path.is_empty() {
+                        // Can't execute an empty command
+                        terminal.start_of_row()?;
+                        terminal.write(&format!("{}", "No command to execute".red()))?;
+                        terminal.flush()?;
+                        std::thread::sleep(std::time::Duration::from_millis(
+                            ERROR_DISPLAY_DURATION_MS,
+                        ));
                     } else {
-                        Ok(command)
-                    };
+                        let command = compose_command(&path);
+                        terminal.teardown()?;
+                        // Safe to unwrap because we checked is_empty above
+                        let last_node = path.last().unwrap();
+                        return if opts.print_immediate_tag && last_node.is_immediate {
+                            Ok(format!("{} {}", IMMEDIATE_PREFIX, command))
+                        } else {
+                            Ok(command)
+                        };
+                    }
                 }
                 _ => {}
             }

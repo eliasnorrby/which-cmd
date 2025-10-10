@@ -1,12 +1,14 @@
 use clap::ValueEnum;
 
+use crate::error::Result;
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Shell {
     Zsh,
     ZshTmux,
 }
 
-pub fn integration_command(shell: Shell) -> Result<(), Box<dyn std::error::Error>> {
+pub fn integration_command(shell: Shell) -> Result<()> {
     match shell {
         Shell::Zsh => {
             println!(

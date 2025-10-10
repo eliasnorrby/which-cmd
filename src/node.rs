@@ -116,10 +116,11 @@ impl Node {
         }
     }
 
-    pub fn with_selection(&self, choice: usize) -> Node {
-        let selection = self.choices.get(choice).unwrap();
+    #[must_use]
+    pub fn with_selection(&self, choice: usize) -> Option<Node> {
+        let selection = self.choices.get(choice)?;
 
-        Node {
+        Some(Node {
             id: Node::id_from_parent(&self.id, CHOICE_KEY),
             key: CHOICE_KEY.to_string(),
             name: selection.to_string(),
@@ -132,9 +133,10 @@ impl Node {
             keys: vec![],
             choices: vec![],
             input_type: None,
-        }
+        })
     }
 
+    #[must_use]
     pub fn with_input(&self, input: &str) -> Node {
         Node {
             id: Node::id_from_parent(&self.id, input),
