@@ -13,15 +13,15 @@ pub struct Config {
 impl Config {
     pub fn from_file() -> Result<Self> {
         let xdg_dirs = xdg::BaseDirectories::with_prefix(PREFIX)?;
-        let config_path = xdg_dirs
-            .find_config_file(CONFIG_FILE_NAME)
-            .ok_or_else(|| WhichCmdError::ConfigNotFound {
+        let config_path = xdg_dirs.find_config_file(CONFIG_FILE_NAME).ok_or_else(|| {
+            WhichCmdError::ConfigNotFound {
                 path: format!(
                     "{}/{}",
                     xdg_dirs.get_config_home().display(),
                     CONFIG_FILE_NAME
                 ),
-            })?;
+            }
+        })?;
 
         let contents = fs::read_to_string(config_path)?;
 

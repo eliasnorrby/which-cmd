@@ -87,8 +87,9 @@ impl<W: Write> Terminal<W> {
         };
 
         // Move cursor to the starting column of the current row
-        let pos = cursor::position()
-            .map_err(|e| WhichCmdError::Terminal(format!("Failed to get cursor position: {}", e)))?;
+        let pos = cursor::position().map_err(|e| {
+            WhichCmdError::Terminal(format!("Failed to get cursor position: {}", e))
+        })?;
         self.writer
             .execute(cursor::MoveTo(start_col, pos.1))
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to move cursor: {}", e)))?;
@@ -98,8 +99,9 @@ impl<W: Write> Terminal<W> {
     }
 
     pub fn start_of_row(&mut self) -> Result<()> {
-        let pos = cursor::position()
-            .map_err(|e| WhichCmdError::Terminal(format!("Failed to get cursor position: {}", e)))?;
+        let pos = cursor::position().map_err(|e| {
+            WhichCmdError::Terminal(format!("Failed to get cursor position: {}", e))
+        })?;
         self.writer
             .execute(cursor::MoveTo(0, pos.1))
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to move cursor: {}", e)))?;
