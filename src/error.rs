@@ -29,10 +29,12 @@ pub enum WhichCmdError {
 
     /// No selection was made when one was required
     #[error("No selection made")]
+    #[allow(dead_code)]
     NoSelection,
 
     /// User cancelled the operation
     #[error("Operation cancelled by user")]
+    #[allow(dead_code)]
     Cancelled,
 }
 

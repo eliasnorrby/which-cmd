@@ -36,14 +36,16 @@ impl Config {
         // and the key of the current node.
         fn set_id(node: &mut Node, parent_id: &str) -> Result<()> {
             node.set_id_from_parent(parent_id);
-            Config::ensure_unique(&node.id, node.keys.iter().map(|node| &node.key).collect())?;
+            let keys: Vec<&str> = node.keys.iter().map(|n| n.key.as_str()).collect();
+            Config::ensure_unique(&node.id, &keys)?;
             for child in node.keys.iter_mut() {
                 set_id(child, &node.id)?;
             }
             Ok(())
         }
 
-        Config::ensure_unique("", config.keys.iter().map(|node| &node.key).collect())?;
+        let keys: Vec<&str> = config.keys.iter().map(|n| n.key.as_str()).collect();
+        Config::ensure_unique("", &keys)?;
 
         for node in config.keys.iter_mut() {
             set_id(node, "")?;
@@ -52,9 +54,9 @@ impl Config {
         Ok(config)
     }
 
-    fn ensure_unique(parent_id: &str, keys: Vec<&String>) -> Result<()> {
+    fn ensure_unique(parent_id: &str, keys: &[&str]) -> Result<()> {
         let mut seen = std::collections::HashSet::new();
-        for key in keys {
+        for &key in keys {
             if seen.contains(key) {
                 return Err(WhichCmdError::ConflictingKeys(format!(
                     "{}{}",

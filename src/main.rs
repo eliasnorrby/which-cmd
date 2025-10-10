@@ -13,7 +13,6 @@ mod commands;
 use commands::integration::Shell;
 
 use clap::{command, Parser, Subcommand};
-use std::error::Error;
 
 /// A command builder tool – which-key for the command line
 #[derive(Parser)]
@@ -51,16 +50,26 @@ configured to recognize this flag."
     Height,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     let args = Args::parse();
 
-    match args.cmd {
-        Commands::Build { immediate } => commands::build_command(immediate)?,
-        Commands::Get => commands::get_command()?,
-        Commands::Integration { shell } => commands::integration_command(shell)?,
-        Commands::Doctor => commands::doctor_command(),
-        Commands::Height => commands::height_command(),
-    }
+    let result = match args.cmd {
+        Commands::Build { immediate } => commands::build_command(immediate),
+        Commands::Get => commands::get_command(),
+        Commands::Integration { shell } => commands::integration_command(shell),
+        Commands::Doctor => {
+            commands::doctor_command();
+            Ok(())
+        }
+        Commands::Height => {
+            commands::height_command();
+            Ok(())
+        }
+    };
 
-    Ok(())
+    // Handle errors at the application boundary
+    if let Err(e) = result {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
 }

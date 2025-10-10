@@ -9,6 +9,7 @@ pub fn pop_to_first_non_is_fleeting(path: &mut Vec<Node>) {
     }
 }
 
+#[must_use]
 pub fn compose_command(path: &[Node]) -> String {
     // Start building the command from the last anchor point
     let mut command_parts = Vec::new();
