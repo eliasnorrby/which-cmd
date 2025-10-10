@@ -185,7 +185,8 @@ mod tests {
     #[test]
     fn test_is_leaf_with_keys() {
         let mut node = create_test_node("g", "g", "git", "git");
-        node.keys.push(create_test_node("gs", "s", "status", "status"));
+        node.keys
+            .push(create_test_node("gs", "s", "status", "status"));
         assert!(!node.is_leaf());
     }
 
@@ -302,6 +303,9 @@ value: git
 fleeting: true
 "#;
         let node: Node = serde_yaml::from_str(yaml).unwrap();
-        assert!(node.is_fleeting, "Explicitly fleeting nodes should be fleeting");
+        assert!(
+            node.is_fleeting,
+            "Explicitly fleeting nodes should be fleeting"
+        );
     }
 }
