@@ -20,7 +20,7 @@ pub fn format_search_options(nodes: &[SearchNode]) -> Vec<String> {
 
 pub fn format_single_search_option(node: &SearchNode, command_length: usize) -> String {
     format!(
-        "{:<length$} {}",
+        "{:<length$}   {}",
         &node.command,
         node.id
             .chars()
