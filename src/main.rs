@@ -1,5 +1,6 @@
 mod config;
 mod constants;
+mod error;
 mod node;
 mod options;
 mod path;
