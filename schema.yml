@@ -13,3 +13,7 @@ definitions:
       key:
         type: string
         pattern: ^.$
+      keys:
+        type: array
+        items:
+          $ref: "#/definitions/Node"
