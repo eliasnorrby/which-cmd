@@ -154,3 +154,154 @@ impl Node {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_test_node(id: &str, key: &str, name: &str, value: &str) -> Node {
+        Node {
+            id: id.to_string(),
+            key: key.to_string(),
+            name: name.to_string(),
+            value: value.to_string(),
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            is_repeatable: false,
+            keys: vec![],
+            choices: vec![],
+            input_type: None,
+        }
+    }
+
+    #[test]
+    fn test_is_leaf_with_no_children() {
+        let node = create_test_node("g", "g", "git", "git");
+        assert!(node.is_leaf());
+    }
+
+    #[test]
+    fn test_is_leaf_with_keys() {
+        let mut node = create_test_node("g", "g", "git", "git");
+        node.keys.push(create_test_node("gs", "s", "status", "status"));
+        assert!(!node.is_leaf());
+    }
+
+    #[test]
+    fn test_is_leaf_with_choices() {
+        let mut node = create_test_node("g", "g", "git", "git");
+        node.choices = vec!["option1".to_string(), "option2".to_string()];
+        assert!(!node.is_leaf());
+    }
+
+    #[test]
+    fn test_is_leaf_with_input() {
+        let mut node = create_test_node("g", "g", "git", "git");
+        node.input_type = Some(InputType::Text);
+        assert!(!node.is_leaf());
+    }
+
+    #[test]
+    fn test_has_choices_true() {
+        let mut node = create_test_node("g", "g", "git", "git");
+        node.choices = vec!["option1".to_string()];
+        assert!(node.has_choices());
+    }
+
+    #[test]
+    fn test_has_choices_false() {
+        let node = create_test_node("g", "g", "git", "git");
+        assert!(!node.has_choices());
+    }
+
+    #[test]
+    fn test_id_from_parent_with_parent() {
+        let id = Node::id_from_parent("git", "s");
+        assert_eq!(id, "gits");
+    }
+
+    #[test]
+    fn test_id_from_parent_without_parent() {
+        let id = Node::id_from_parent("", "g");
+        assert_eq!(id, "g");
+    }
+
+    #[test]
+    fn test_set_id_from_parent() {
+        let mut node = create_test_node("", "s", "status", "status");
+        node.set_id_from_parent("git");
+        assert_eq!(node.id, "gits");
+    }
+
+    #[test]
+    fn test_with_selection_valid_index() {
+        let mut node = create_test_node("g", "g", "git", "git");
+        node.choices = vec!["branch".to_string(), "commit".to_string()];
+
+        let selected = node.with_selection(0);
+        assert!(selected.is_some());
+
+        let selected_node = selected.unwrap();
+        assert_eq!(selected_node.key, CHOICE_KEY);
+        assert_eq!(selected_node.name, "branch");
+        assert_eq!(selected_node.value, "branch");
+        assert_eq!(selected_node.id, format!("g{}", CHOICE_KEY));
+    }
+
+    #[test]
+    fn test_with_selection_invalid_index() {
+        let mut node = create_test_node("g", "g", "git", "git");
+        node.choices = vec!["branch".to_string()];
+
+        let selected = node.with_selection(5);
+        assert!(selected.is_none());
+    }
+
+    #[test]
+    fn test_with_input() {
+        let node = create_test_node("g", "g", "git", "git");
+        let input_node = node.with_input("my-branch-name");
+
+        assert_eq!(input_node.key, INPUT_KEY);
+        assert_eq!(input_node.name, "my-branch-name");
+        assert_eq!(input_node.value, "my-branch-name");
+        assert_eq!(input_node.id, format!("gmy-branch-name"));
+    }
+
+    #[test]
+    fn test_fleeting_flag_with_choices() {
+        let yaml = r#"
+key: g
+value: git
+choices:
+  - branch
+  - commit
+"#;
+        let node: Node = serde_yaml::from_str(yaml).unwrap();
+        assert!(node.is_fleeting, "Nodes with choices should be fleeting");
+    }
+
+    #[test]
+    fn test_fleeting_flag_with_input() {
+        let yaml = r#"
+key: b
+value: branch
+input: Text
+"#;
+        let node: Node = serde_yaml::from_str(yaml).unwrap();
+        assert!(node.is_fleeting, "Nodes with input should be fleeting");
+    }
+
+    #[test]
+    fn test_fleeting_flag_explicit() {
+        let yaml = r#"
+key: g
+value: git
+fleeting: true
+"#;
+        let node: Node = serde_yaml::from_str(yaml).unwrap();
+        assert!(node.is_fleeting, "Explicitly fleeting nodes should be fleeting");
+    }
+}
