@@ -36,6 +36,9 @@ integration is set up to handle the output of which-cmd must be
 configured to recognize this flag."
         )]
         immediate: bool,
+        /// Draw a border around the TUI using box-drawing characters
+        #[clap(long, short)]
+        border: bool,
     },
     /// Get a previously built command
     Get,
@@ -54,7 +57,7 @@ fn main() {
     let args = Args::parse();
 
     let result = match args.cmd {
-        Commands::Build { immediate } => commands::build_command(immediate),
+        Commands::Build { immediate, border } => commands::build_command(immediate, border),
         Commands::Get => commands::get_command(),
         Commands::Integration { shell } => commands::integration_command(shell),
         Commands::Doctor => {

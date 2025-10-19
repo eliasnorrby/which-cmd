@@ -65,6 +65,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
     // Initialize terminal
     let mut terminal = Terminal::new(std::io::stdout());
 
+    terminal.set_border(opts.border);
     terminal.setup()?;
 
     let mut path: Vec<Node> = Vec::new();
@@ -76,19 +77,19 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
         // Display the current path
         if !path.is_empty() {
             terminal.write_line(&command_indicator(&path))?;
-            terminal.blank_line()?;
+            terminal.empty_border_line()?;
             let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
             terminal.write_line(&format!(
                 "{} {}",
                 "Keys pressed:".grey(),
                 keys_pressed.join(&" > ".dark_grey().to_string())
             ))?;
-            terminal.blank_line()?;
+            terminal.empty_border_line()?;
         } else {
             terminal.write_line(&format!("{}", "Press a key to select an option".grey()))?;
-            terminal.blank_line()?;
+            terminal.empty_border_line()?;
             terminal.write_line(&format!("{}", "Available keys:".grey()))?;
-            terminal.blank_line()?;
+            terminal.empty_border_line()?;
         }
 
         // TODO: make configurable
@@ -174,12 +175,13 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
             terminal.write_line(&line)?;
         }
 
-        terminal.blank_line()?;
+        terminal.empty_border_line()?;
         terminal.write_centered(&format!(
             "󱊷  {}  󰁮  {}",
             "close".dark_grey(),
             "back".dark_grey()
         ))?;
+        terminal.draw_bottom_border()?;
 
         terminal.flush()?;
 

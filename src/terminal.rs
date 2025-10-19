@@ -3,6 +3,7 @@ use crate::node::InputType;
 
 use crossterm::{
     cursor::{self},
+    style::Stylize,
     terminal::{self, ClearType},
     ExecutableCommand,
 };
@@ -14,6 +15,8 @@ pub struct Terminal<W: Write> {
     writer: W,
     start_row: u16,
     tui_height: u16,
+    border: bool,
+    terminal_width: u16,
 }
 
 impl<W: Write> Terminal<W> {
@@ -22,7 +25,13 @@ impl<W: Write> Terminal<W> {
             writer,
             start_row: 0,
             tui_height: 0,
+            border: false,
+            terminal_width: 0,
         }
+    }
+
+    pub fn set_border(&mut self, enabled: bool) {
+        self.border = enabled;
     }
 
     pub fn setup(&mut self) -> Result<()> {
@@ -32,12 +41,15 @@ impl<W: Write> Terminal<W> {
         self.start_row = pos.1;
 
         // Calculate TUI height using the centralized function
-        self.tui_height = crate::constants::calculate_tui_height() as u16;
+        // If border is enabled, add 2 lines for top and bottom borders
+        self.tui_height = crate::constants::calculate_tui_height() as u16 + if self.border { 2 } else { 0 };
 
         // Ensure we have enough space below the cursor
         // If not, move down to create space
-        let (_, rows) = terminal::size()
+        let (cols, rows) = terminal::size()
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to get terminal size: {}", e)))?;
+
+        self.terminal_width = cols;
 
         if self.start_row + self.tui_height > rows {
             // We need to scroll down to make room
@@ -90,13 +102,65 @@ impl<W: Write> Terminal<W> {
         self.writer
             .execute(cursor::MoveTo(0, self.start_row))
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to move cursor: {}", e)))?;
+
+        // If border is enabled, draw the top border
+        if self.border {
+            self.draw_top_border()?;
+        }
+
+        Ok(())
+    }
+
+    fn draw_top_border(&mut self) -> Result<()> {
+        let border_line = format!(
+            "{}",
+            format!(
+                "{}{}{}",
+                "╭",
+                "─".repeat((self.terminal_width - 2) as usize),
+                "╮"
+            )
+            .dark_grey()
+        );
+        self.writer
+            .write_all(border_line.as_bytes())
+            .map_err(|e| WhichCmdError::Terminal(format!("Failed to write top border: {}", e)))?;
+        Ok(())
+    }
+
+    pub fn draw_bottom_border(&mut self) -> Result<()> {
+        if self.border {
+            self.writer
+                .write_all(b"\r\n")
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write newline: {}", e)))?;
+            let border_line = format!(
+                "{}",
+                format!(
+                    "{}{}{}",
+                    "╰",
+                    "─".repeat((self.terminal_width - 2) as usize),
+                    "╯"
+                )
+                .dark_grey()
+            );
+            self.writer
+                .write_all(border_line.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write bottom border: {}", e)))?;
+        }
         Ok(())
     }
 
     pub fn write(&mut self, content: &str) -> Result<()> {
-        self.writer
-            .write_all(b" ")
-            .map_err(|e| WhichCmdError::Terminal(format!("Failed to write: {}", e)))?;
+        if self.border {
+            let left_border = format!("{} ", "│".dark_grey());
+            self.writer
+                .write_all(left_border.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write: {}", e)))?;
+        } else {
+            self.writer
+                .write_all(b" ")
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write: {}", e)))?;
+        }
         self.writer
             .write_all(content.as_bytes())
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to write: {}", e)))?;
@@ -105,6 +169,32 @@ impl<W: Write> Terminal<W> {
 
     pub fn write_line(&mut self, content: &str) -> Result<()> {
         self.write(content)?;
+        if self.border {
+            // Add right border before newline
+            // We need to get the current cursor position to know how much content was written
+            let pos = cursor::position().map_err(|e| {
+                WhichCmdError::Terminal(format!("Failed to get cursor position: {}", e))
+            })?;
+
+            // Current column position (0-based)
+            let current_col = pos.0;
+
+            // Calculate how many spaces we need to reach the right border
+            // Terminal width - 2 (for " │")
+            let target_col = self.terminal_width.saturating_sub(2);
+            let padding = target_col.saturating_sub(current_col);
+
+            for _ in 0..padding {
+                self.writer
+                    .write_all(b" ")
+                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+            }
+
+            let right_border = format!(" {}", "│".dark_grey());
+            self.writer
+                .write_all(right_border.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write right border: {}", e)))?;
+        }
         self.blank_line()?;
         Ok(())
     }
@@ -116,30 +206,100 @@ impl<W: Write> Terminal<W> {
         Ok(())
     }
 
+    pub fn empty_border_line(&mut self) -> Result<()> {
+        if self.border {
+            // Draw empty line with borders
+            let left_border = format!("{}", "│".dark_grey());
+            self.writer
+                .write_all(left_border.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write empty border line: {}", e)))?;
+            let inner_width = self.terminal_width.saturating_sub(2) as usize;
+            for _ in 0..inner_width {
+                self.writer
+                    .write_all(b" ")
+                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write empty border line: {}", e)))?;
+            }
+            let right_border = format!("{}", "│".dark_grey());
+            self.writer
+                .write_all(right_border.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write empty border line: {}", e)))?;
+            self.blank_line()?;
+        } else {
+            self.blank_line()?;
+        }
+        Ok(())
+    }
+
     /// Writes a line of text centered horizontally on the current row.
     pub fn write_centered(&mut self, content: &str) -> Result<()> {
-        // Fetch terminal size
-        let (cols, _) = terminal::size()
-            .map_err(|e| WhichCmdError::Terminal(format!("Failed to get terminal size: {}", e)))?;
+        if self.border {
+            // With border, we need to write the full line with left border, centered content, and right border
+            let left_border = format!("{} ", "│".dark_grey());
+            self.writer
+                .write_all(left_border.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write left border: {}", e)))?;
 
-        // Calculate starting column for center alignment
-        let content_length = console::measure_text_width(content) as u16;
-        let start_col = if content_length < cols {
-            (cols - content_length) / 2
+            // Calculate available width for content (terminal width - borders)
+            let available_width = self.terminal_width.saturating_sub(4) as usize; // 4 for "│ " and " │"
+            let content_length = console::measure_text_width(content);
+
+            // Calculate padding
+            let total_padding = available_width.saturating_sub(content_length);
+            let left_padding = total_padding / 2;
+            let right_padding = total_padding - left_padding;
+
+            // Write left padding
+            for _ in 0..left_padding {
+                self.writer
+                    .write_all(b" ")
+                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+            }
+
+            // Write content
+            self.writer
+                .write_all(content.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write content: {}", e)))?;
+
+            // Write right padding
+            for _ in 0..right_padding {
+                self.writer
+                    .write_all(b" ")
+                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+            }
+
+            // Write right border
+            let right_border = format!(" {}", "│".dark_grey());
+            self.writer
+                .write_all(right_border.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write right border: {}", e)))?;
         } else {
-            0
-        };
+            // Without border, use the original implementation
+            let (cols, _) = terminal::size()
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to get terminal size: {}", e)))?;
 
-        // Move cursor to the starting column of the current row
-        let pos = cursor::position().map_err(|e| {
-            WhichCmdError::Terminal(format!("Failed to get cursor position: {}", e))
-        })?;
-        self.writer
-            .execute(cursor::MoveTo(start_col, pos.1))
-            .map_err(|e| WhichCmdError::Terminal(format!("Failed to move cursor: {}", e)))?;
+            // Calculate starting column for center alignment
+            let content_length = console::measure_text_width(content) as u16;
+            let start_col = if content_length < cols {
+                (cols - content_length) / 2
+            } else {
+                0
+            };
 
-        // Write the content
-        self.write(content)
+            // Move cursor to the starting column of the current row
+            let pos = cursor::position().map_err(|e| {
+                WhichCmdError::Terminal(format!("Failed to get cursor position: {}", e))
+            })?;
+            self.writer
+                .execute(cursor::MoveTo(start_col, pos.1))
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to move cursor: {}", e)))?;
+
+            // Write the content
+            self.writer
+                .write_all(content.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write: {}", e)))?;
+        }
+
+        Ok(())
     }
 
     pub fn start_of_row(&mut self) -> Result<()> {
