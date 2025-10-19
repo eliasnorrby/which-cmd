@@ -9,6 +9,12 @@ pub const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
 /// Duration to display error messages in the TUI (milliseconds)
 pub const ERROR_DISPLAY_DURATION_MS: u64 = 750;
 
+/// Help text displayed in the TUI footer
+pub fn help_text() -> String {
+    use crossterm::style::Stylize;
+    format!("󱊷  {}  󰁮  {}", "close".dark_grey(), "back".dark_grey())
+}
+
 /// Calculate the total height of the TUI in rows
 ///
 /// This includes:
