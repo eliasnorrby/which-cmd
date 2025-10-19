@@ -20,10 +20,19 @@ which_cmd_widget() {{
     # The <$TTY part ensures that which-cmd reads input from the terminal ($TTY) rather than from
     #   the shell's standard input, which may not be connected to the terminal when running in a
     #   ZLE widget.
-    <$TTY which-cmd build
+    <$TTY which-cmd build --border --immediate
     if [[ $? -eq 0 ]]; then
         result=$(which-cmd get)
-        LBUFFER+="$result"
+        if [[ $result != "" ]]; then
+          if [[ $result = __IMMEDIATE__* ]]; then
+            local cmd
+            cmd=$(echo $result | cut -d' ' -f2-)
+            LBUFFER+="$cmd"
+            zle accept-line
+          else
+            LBUFFER+="$result"
+          fi
+        fi
     fi
     zle reset-prompt
 }}
