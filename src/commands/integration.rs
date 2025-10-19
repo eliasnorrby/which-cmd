@@ -35,7 +35,7 @@ bindkey '^P' which_cmd_widget
 which_cmd_tmux_widget() {{
   if [[ $LBUFFER == "" ]]; then
     local result
-    tmux display-popup -S fg=brightblack -T '#[fg=white bold] which-cmd #[fg=default]' -y S -w 95% -h 12 -b rounded -E "which-cmd build --immediate"
+    tmux display-popup -S fg=brightblack -T '#[fg=white bold] which-cmd #[fg=default]' -y P -w 95% -h 12 -b rounded -E "which-cmd build --immediate"
     result=$(which-cmd get)
     if [[ $result != "" ]]; then
       if [[ $result = __IMMEDIATE__* ]]; then
