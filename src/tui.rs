@@ -84,6 +84,134 @@ fn command_indicator(path: &[Rc<Node>]) -> String {
     )
 }
 
+/// Get the current nodes to display based on path and loop state
+fn get_current_nodes(
+    config: &Config,
+    path: &[Rc<Node>],
+    loop_node_index: Option<usize>,
+) -> Vec<Rc<Node>> {
+    if let Some(l) = loop_node_index {
+        if let Some(last_node) = path.last() {
+            if last_node.is_leaf() {
+                path[l]
+                    .keys
+                    .iter()
+                    .filter(|n| n.is_repeatable || !path.iter().any(|p| p.id == n.id))
+                    .map(Rc::clone)
+                    .collect()
+            } else {
+                last_node.keys.clone()
+            }
+        } else {
+            config.keys.clone()
+        }
+    } else if let Some(last_node) = path.last() {
+        last_node.keys.clone()
+    } else {
+        config.keys.clone()
+    }
+}
+
+/// Sort nodes alphabetically (case-insensitive), with lowercase before uppercase
+fn sort_nodes(nodes: &[Rc<Node>]) -> Vec<Rc<Node>> {
+    let mut sorted = nodes.to_vec();
+    sorted.sort_by(|a, b| {
+        let a_key_lower = a.key.to_lowercase();
+        let b_key_lower = b.key.to_lowercase();
+        match a_key_lower.cmp(&b_key_lower) {
+            std::cmp::Ordering::Equal => {
+                let a_is_lower = a.key.chars().next().unwrap().is_lowercase();
+                let b_is_lower = b.key.chars().next().unwrap().is_lowercase();
+                match (a_is_lower, b_is_lower) {
+                    (true, false) => std::cmp::Ordering::Less,
+                    (false, true) => std::cmp::Ordering::Greater,
+                    _ => a.key.cmp(&b.key),
+                }
+            }
+            other => other,
+        }
+    });
+    sorted
+}
+
+/// Render the main TUI interface
+fn render<W: std::io::Write>(
+    terminal: &mut Terminal<W>,
+    path: &[Rc<Node>],
+    nodes: &[Rc<Node>],
+    opts: &Options,
+) -> Result<()> {
+    terminal.clear_screen()?;
+
+    // Header: display current path or welcome message
+    if !path.is_empty() {
+        terminal.write_line(&command_indicator(path))?;
+        terminal.empty_border_line()?;
+        let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
+        terminal.write_line(&format!(
+            "{} {}",
+            "Keys pressed:".grey(),
+            keys_pressed.join(&" > ".dark_grey().to_string())
+        ))?;
+        terminal.empty_border_line()?;
+    } else {
+        terminal.write_line(&format!("{}", "Press a key to select an option".grey()))?;
+        terminal.empty_border_line()?;
+        terminal.write_line(&format!("{}", "Available keys:".grey()))?;
+        terminal.empty_border_line()?;
+    }
+
+    // Arrange nodes into rows
+    let num_rows = NUMBER_OF_ROWS;
+    let mut rows: Vec<Vec<String>> = vec![Vec::new(); num_rows];
+
+    for (i, node) in nodes.iter().enumerate() {
+        let row_index = i % num_rows;
+        let display_string = format_node(node, opts);
+        rows[row_index].push(display_string);
+    }
+
+    // Calculate column widths
+    let num_columns = rows.iter().map(|row| row.len()).max().unwrap_or(0);
+    let mut column_widths = vec![0; num_columns];
+
+    for row in &rows {
+        for (col_index, display_string) in row.iter().enumerate() {
+            let width = display_string.len();
+            if width > column_widths[col_index] {
+                column_widths[col_index] = width;
+            }
+        }
+    }
+
+    // Display the options in table format
+    for row in &rows {
+        let mut line = String::new();
+        for (col_index, display_string) in row.iter().enumerate() {
+            let column_width = column_widths[col_index];
+            line.push_str(&format!(
+                "{:<width$}\t",
+                display_string,
+                width = column_width
+            ));
+        }
+        terminal.write_line(&line)?;
+    }
+
+    // Footer
+    terminal.empty_border_line()?;
+    terminal.write_centered(&format!(
+        "󱊷  {}  󰁮  {}",
+        "close".dark_grey(),
+        "back".dark_grey()
+    ))?;
+    terminal.draw_bottom_border()?;
+
+    terminal.flush()?;
+
+    Ok(())
+}
+
 pub fn run_tui(config: Config, opts: Options) -> Result<String> {
     // Initialize terminal
     let mut terminal = Terminal::new(std::io::stdout());
@@ -95,118 +223,12 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
     let mut loop_node_index: Option<usize> = None;
 
     loop {
-        terminal.clear_screen()?;
+        // Prepare data for rendering
+        let current_nodes = get_current_nodes(&config, &path, loop_node_index);
+        let sorted_nodes = sort_nodes(&current_nodes);
 
-        // Display the current path
-        if !path.is_empty() {
-            terminal.write_line(&command_indicator(&path))?;
-            terminal.empty_border_line()?;
-            let keys_pressed: Vec<&str> = path.iter().map(|node| node.key.as_str()).collect();
-            terminal.write_line(&format!(
-                "{} {}",
-                "Keys pressed:".grey(),
-                keys_pressed.join(&" > ".dark_grey().to_string())
-            ))?;
-            terminal.empty_border_line()?;
-        } else {
-            terminal.write_line(&format!("{}", "Press a key to select an option".grey()))?;
-            terminal.empty_border_line()?;
-            terminal.write_line(&format!("{}", "Available keys:".grey()))?;
-            terminal.empty_border_line()?;
-        }
-
-        // TODO: make configurable
-        let num_rows = NUMBER_OF_ROWS;
-
-        let current_nodes = if let Some(l) = loop_node_index {
-            if let Some(last_node) = path.last() {
-                if last_node.is_leaf() {
-                    path[l]
-                        .keys
-                        .iter()
-                        .filter(|n| n.is_repeatable || !path.iter().any(|p| p.id == n.id))
-                        .map(Rc::clone)
-                        .collect()
-                } else {
-                    last_node.keys.clone()
-                }
-            } else {
-                config.keys.clone()
-            }
-        } else if let Some(last_node) = path.last() {
-            last_node.keys.clone()
-        } else {
-            config.keys.clone()
-        };
-
-        // Sort the current_nodes before displaying them
-        let mut sorted_nodes = current_nodes.to_vec();
-        sorted_nodes.sort_by(|a, b| {
-            let a_key_lower = a.key.to_lowercase();
-            let b_key_lower = b.key.to_lowercase();
-            match a_key_lower.cmp(&b_key_lower) {
-                std::cmp::Ordering::Equal => {
-                    let a_is_lower = a.key.chars().next().unwrap().is_lowercase();
-                    let b_is_lower = b.key.chars().next().unwrap().is_lowercase();
-                    match (a_is_lower, b_is_lower) {
-                        (true, false) => std::cmp::Ordering::Less,
-                        (false, true) => std::cmp::Ordering::Greater,
-                        _ => a.key.cmp(&b.key),
-                    }
-                }
-                other => other,
-            }
-        });
-
-        // Arrange the options into rows
-        let mut rows: Vec<Vec<String>> = vec![Vec::new(); num_rows];
-
-        for (i, node) in sorted_nodes.iter().enumerate() {
-            let row_index = i % num_rows;
-            let display_string = format_node(node, &opts);
-            rows[row_index].push(display_string);
-        }
-
-        // Determine the maximum number of columns
-        let num_columns = rows.iter().map(|row| row.len()).max().unwrap_or(0);
-
-        // Initialize column widths
-        let mut column_widths = vec![0; num_columns];
-
-        // Calculate the maximum width for each column
-        for row in &rows {
-            for (col_index, display_string) in row.iter().enumerate() {
-                let width = display_string.len();
-                if width > column_widths[col_index] {
-                    column_widths[col_index] = width;
-                }
-            }
-        }
-
-        // Display the options in table format
-        for row in &rows {
-            let mut line = String::new();
-            for (col_index, display_string) in row.iter().enumerate() {
-                let column_width = column_widths[col_index];
-                // Pad the display string to the column width
-                line.push_str(&format!(
-                    "{:<width$}\t",
-                    display_string,
-                    width = column_width
-                ));
-            }
-            terminal.write_line(&line)?;
-        }
-
-        terminal.empty_border_line()?;
-        terminal.write_centered(&format!(
-            "󱊷  {}  󰁮  {}",
-            "close".dark_grey(),
-            "back".dark_grey()
-        ))?;
-        terminal.draw_bottom_border()?;
-
-        terminal.flush()?;
+        // Render the TUI
+        render(&mut terminal, &path, &sorted_nodes, &opts)?;
 
         // Wait for an event
         let key_event = event::read()
