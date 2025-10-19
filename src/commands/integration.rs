@@ -16,6 +16,9 @@ pub fn integration_command(shell: Shell) -> Result<()> {
 # which-cmd integration for zsh
 which_cmd_widget() {{
     local result
+    # The <$TTY part ensures that which-cmd reads input from the terminal ($TTY) rather than from
+    #   the shell's standard input, which may not be connected to the terminal when running in a
+    #   ZLE widget.
     <$TTY which-cmd build
     if [[ $? -eq 0 ]]; then
         result=$(which-cmd get)
