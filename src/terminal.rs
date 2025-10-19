@@ -36,13 +36,15 @@ impl<W: Write> Terminal<W> {
 
     pub fn setup(&mut self) -> Result<()> {
         // Save the current cursor position
-        let pos = cursor::position()
-            .map_err(|e| WhichCmdError::Terminal(format!("Failed to get cursor position: {}", e)))?;
+        let pos = cursor::position().map_err(|e| {
+            WhichCmdError::Terminal(format!("Failed to get cursor position: {}", e))
+        })?;
         self.start_row = pos.1;
 
         // Calculate TUI height using the centralized function
         // If border is enabled, add 2 lines for top and bottom borders
-        self.tui_height = crate::constants::calculate_tui_height() as u16 + if self.border { 2 } else { 0 };
+        self.tui_height =
+            crate::constants::calculate_tui_height() as u16 + if self.border { 2 } else { 0 };
 
         // Ensure we have enough space below the cursor
         // If not, move down to create space
@@ -55,8 +57,9 @@ impl<W: Write> Terminal<W> {
             // We need to scroll down to make room
             let lines_needed = self.start_row + self.tui_height - rows;
             for _ in 0..lines_needed {
-                self.writer.write_all(b"\r\n")
-                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write newline: {}", e)))?;
+                self.writer.write_all(b"\r\n").map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write newline: {}", e))
+                })?;
             }
             self.start_row = rows.saturating_sub(self.tui_height);
         }
@@ -143,9 +146,9 @@ impl<W: Write> Terminal<W> {
                 )
                 .dark_grey()
             );
-            self.writer
-                .write_all(border_line.as_bytes())
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write bottom border: {}", e)))?;
+            self.writer.write_all(border_line.as_bytes()).map_err(|e| {
+                WhichCmdError::Terminal(format!("Failed to write bottom border: {}", e))
+            })?;
         }
         Ok(())
     }
@@ -185,15 +188,17 @@ impl<W: Write> Terminal<W> {
             let padding = target_col.saturating_sub(current_col);
 
             for _ in 0..padding {
-                self.writer
-                    .write_all(b" ")
-                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+                self.writer.write_all(b" ").map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write padding: {}", e))
+                })?;
             }
 
             let right_border = format!(" {}", "│".dark_grey());
             self.writer
                 .write_all(right_border.as_bytes())
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write right border: {}", e)))?;
+                .map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write right border: {}", e))
+                })?;
         }
         self.blank_line()?;
         Ok(())
@@ -210,19 +215,21 @@ impl<W: Write> Terminal<W> {
         if self.border {
             // Draw empty line with borders
             let left_border = format!("{}", "│".dark_grey());
-            self.writer
-                .write_all(left_border.as_bytes())
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write empty border line: {}", e)))?;
+            self.writer.write_all(left_border.as_bytes()).map_err(|e| {
+                WhichCmdError::Terminal(format!("Failed to write empty border line: {}", e))
+            })?;
             let inner_width = self.terminal_width.saturating_sub(2) as usize;
             for _ in 0..inner_width {
-                self.writer
-                    .write_all(b" ")
-                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write empty border line: {}", e)))?;
+                self.writer.write_all(b" ").map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write empty border line: {}", e))
+                })?;
             }
             let right_border = format!("{}", "│".dark_grey());
             self.writer
                 .write_all(right_border.as_bytes())
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write empty border line: {}", e)))?;
+                .map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write empty border line: {}", e))
+                })?;
             self.blank_line()?;
         } else {
             self.blank_line()?;
@@ -235,9 +242,9 @@ impl<W: Write> Terminal<W> {
         if self.border {
             // With border, we need to write the full line with left border, centered content, and right border
             let left_border = format!("{} ", "│".dark_grey());
-            self.writer
-                .write_all(left_border.as_bytes())
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write left border: {}", e)))?;
+            self.writer.write_all(left_border.as_bytes()).map_err(|e| {
+                WhichCmdError::Terminal(format!("Failed to write left border: {}", e))
+            })?;
 
             // Calculate available width for content (terminal width - borders)
             let available_width = self.terminal_width.saturating_sub(4) as usize; // 4 for "│ " and " │"
@@ -250,9 +257,9 @@ impl<W: Write> Terminal<W> {
 
             // Write left padding
             for _ in 0..left_padding {
-                self.writer
-                    .write_all(b" ")
-                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+                self.writer.write_all(b" ").map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write padding: {}", e))
+                })?;
             }
 
             // Write content
@@ -262,20 +269,23 @@ impl<W: Write> Terminal<W> {
 
             // Write right padding
             for _ in 0..right_padding {
-                self.writer
-                    .write_all(b" ")
-                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+                self.writer.write_all(b" ").map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write padding: {}", e))
+                })?;
             }
 
             // Write right border
             let right_border = format!(" {}", "│".dark_grey());
             self.writer
                 .write_all(right_border.as_bytes())
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write right border: {}", e)))?;
+                .map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write right border: {}", e))
+                })?;
         } else {
             // Without border, use the original implementation
-            let (cols, _) = terminal::size()
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to get terminal size: {}", e)))?;
+            let (cols, _) = terminal::size().map_err(|e| {
+                WhichCmdError::Terminal(format!("Failed to get terminal size: {}", e))
+            })?;
 
             // Calculate starting column for center alignment
             let content_length = console::measure_text_width(content) as u16;
@@ -425,9 +435,9 @@ impl<W: Write> Terminal<W> {
         if self.border {
             // With border: left border + error + padding + centered help text + padding + right border
             let left_border = format!("{} ", "│".dark_grey());
-            self.writer
-                .write_all(left_border.as_bytes())
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write left border: {}", e)))?;
+            self.writer.write_all(left_border.as_bytes()).map_err(|e| {
+                WhichCmdError::Terminal(format!("Failed to write left border: {}", e))
+            })?;
 
             // Write error message
             self.writer
@@ -447,15 +457,15 @@ impl<W: Write> Terminal<W> {
 
             // Write padding before help text
             for _ in 0..padding_before_help {
-                self.writer
-                    .write_all(b" ")
-                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+                self.writer.write_all(b" ").map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write padding: {}", e))
+                })?;
             }
 
             // Write help text
-            self.writer
-                .write_all(help_text.as_bytes())
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write help text: {}", e)))?;
+            self.writer.write_all(help_text.as_bytes()).map_err(|e| {
+                WhichCmdError::Terminal(format!("Failed to write help text: {}", e))
+            })?;
 
             // Calculate padding after help text
             let used_width = error_length + padding_before_help + help_length;
@@ -463,16 +473,18 @@ impl<W: Write> Terminal<W> {
 
             // Write padding after help text
             for _ in 0..padding_after_help {
-                self.writer
-                    .write_all(b" ")
-                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+                self.writer.write_all(b" ").map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write padding: {}", e))
+                })?;
             }
 
             // Write right border
             let right_border = format!(" {}", "│".dark_grey());
             self.writer
                 .write_all(right_border.as_bytes())
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write right border: {}", e)))?;
+                .map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write right border: {}", e))
+                })?;
         } else {
             // Without border: error + padding + centered help text + padding
             self.writer
@@ -496,15 +508,15 @@ impl<W: Write> Terminal<W> {
 
             // Write padding before help text
             for _ in 0..padding_before_help {
-                self.writer
-                    .write_all(b" ")
-                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+                self.writer.write_all(b" ").map_err(|e| {
+                    WhichCmdError::Terminal(format!("Failed to write padding: {}", e))
+                })?;
             }
 
             // Write help text
-            self.writer
-                .write_all(help_text.as_bytes())
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write help text: {}", e)))?;
+            self.writer.write_all(help_text.as_bytes()).map_err(|e| {
+                WhichCmdError::Terminal(format!("Failed to write help text: {}", e))
+            })?;
         }
 
         Ok(())

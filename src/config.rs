@@ -47,8 +47,8 @@ impl Config {
             Config::ensure_unique(&node.id, &keys)?;
             for child in node.keys.iter_mut() {
                 // Get mutable reference to the node inside Rc
-                let child_mut = Rc::get_mut(child)
-                    .expect("Should have exclusive access during initialization");
+                let child_mut =
+                    Rc::get_mut(child).expect("Should have exclusive access during initialization");
                 set_id(child_mut, &node.id)?;
             }
             Ok(())

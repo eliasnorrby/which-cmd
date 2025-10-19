@@ -18,10 +18,7 @@ const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
 
 /// Rebuilds a path from a node ID by traversing the config tree.
 /// Returns the path and the index of the loop node if one was encountered.
-fn rebuild_path_from_id(
-    node_id: &str,
-    root_keys: &[Rc<Node>],
-) -> (Vec<Rc<Node>>, Option<usize>) {
+fn rebuild_path_from_id(node_id: &str, root_keys: &[Rc<Node>]) -> (Vec<Rc<Node>>, Option<usize>) {
     let mut path: Vec<Rc<Node>> = Vec::new();
     let mut loop_node_index: Option<usize> = None;
     let mut lookup = root_keys;
@@ -240,8 +237,8 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                                 };
                             }
                         } else if node.has_choices() {
-                            let mut fuzzy_select = FuzzySelect::new(&node.choices)
-                                .with_prompt("Choose an option:");
+                            let mut fuzzy_select =
+                                FuzzySelect::new(&node.choices).with_prompt("Choose an option:");
                             let selection = fuzzy_select.interact(&mut terminal)?;
                             if let Some(selection_idx) = selection {
                                 if let Some(selected_node) = node.with_selection(selection_idx) {
@@ -266,8 +263,8 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                         };
 
                         let text_options = format_search_options(&options);
-                        let mut fuzzy_select = FuzzySelect::new(&text_options)
-                            .with_prompt("Search:");
+                        let mut fuzzy_select =
+                            FuzzySelect::new(&text_options).with_prompt("Search:");
                         if let Some(selection) = fuzzy_select.interact(&mut terminal)? {
                             let selected_node = &options[selection];
 
@@ -281,12 +278,12 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                         }
                     } else {
                         // Invalid key pressed - show error alongside help text
-                        let help_text = format!(
-                            "󱊷  {}  󰁮  {}",
-                            "close".dark_grey(),
-                            "back".dark_grey()
-                        );
-                        terminal.replace_last_line(&format!("{} {}", "Invalid key:".red(), c), &help_text)?;
+                        let help_text =
+                            format!("󱊷  {}  󰁮  {}", "close".dark_grey(), "back".dark_grey());
+                        terminal.replace_last_line(
+                            &format!("{} {}", "Invalid key:".red(), c),
+                            &help_text,
+                        )?;
                         terminal.flush()?;
                         // Display error for configured duration, or until user presses a key
                         let _ = event::poll(std::time::Duration::from_millis(
@@ -307,12 +304,12 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                 KeyCode::Enter => {
                     if path.is_empty() {
                         // Can't execute an empty command - show error alongside help text
-                        let help_text = format!(
-                            "󱊷  {}  󰁮  {}",
-                            "close".dark_grey(),
-                            "back".dark_grey()
-                        );
-                        terminal.replace_last_line(&format!("{}", "No command to execute".red()), &help_text)?;
+                        let help_text =
+                            format!("󱊷  {}  󰁮  {}", "close".dark_grey(), "back".dark_grey());
+                        terminal.replace_last_line(
+                            &format!("{}", "No command to execute".red()),
+                            &help_text,
+                        )?;
                         terminal.flush()?;
                         // Display error for configured duration, or until user presses a key
                         let _ = event::poll(std::time::Duration::from_millis(
