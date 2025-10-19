@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::constants::{ERROR_DISPLAY_DURATION_MS, NUMBER_OF_ROWS};
 use crate::error::{Result, WhichCmdError};
+use crate::fuzzy_select::FuzzySelect;
 use crate::node::Node;
 use crate::options::Options;
 use crate::path::{compose_command, pop_to_first_non_is_fleeting};
@@ -239,8 +240,9 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                                 };
                             }
                         } else if node.has_choices() {
-                            terminal.prepare_for_input(&command_indicator(&path))?;
-                            let selection = terminal.select(&node.choices)?;
+                            let mut fuzzy_select = FuzzySelect::new(&node.choices)
+                                .with_prompt("Choose an option:");
+                            let selection = fuzzy_select.interact(&mut terminal)?;
                             if let Some(selection_idx) = selection {
                                 if let Some(selected_node) = node.with_selection(selection_idx) {
                                     path.push(selected_node);
@@ -257,8 +259,6 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                         }
                     } else if c == '/' {
                         // Search
-                        terminal.prepare_for_input(&command_indicator(&path))?;
-
                         let options = if path.is_empty() {
                             get_search_options(&config.keys)
                         } else {
@@ -266,7 +266,9 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                         };
 
                         let text_options = format_search_options(&options);
-                        if let Some(selection) = terminal.select(text_options.as_slice())? {
+                        let mut fuzzy_select = FuzzySelect::new(&text_options)
+                            .with_prompt("Search:");
+                        if let Some(selection) = fuzzy_select.interact(&mut terminal)? {
                             let selected_node = &options[selection];
 
                             // Rebuild path based on the selected node ID

@@ -1,6 +1,7 @@
 mod config;
 mod constants;
 mod error;
+mod fuzzy_select;
 mod node;
 mod options;
 mod path;

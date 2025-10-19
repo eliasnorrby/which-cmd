@@ -3,11 +3,11 @@ use crate::node::InputType;
 
 use crossterm::{
     cursor::{self},
+    event,
     style::Stylize,
     terminal::{self, ClearType},
     ExecutableCommand,
 };
-use dialoguer::{theme::ColorfulTheme, FuzzySelect};
 
 use std::io::Write;
 
@@ -316,41 +316,87 @@ impl<W: Write> Terminal<W> {
         Ok(())
     }
 
-    pub fn select(&mut self, options: &[String]) -> Result<Option<usize>> {
-        // Disable raw mode because it breaks alignment of the options
-        terminal::disable_raw_mode()
-            .map_err(|e| WhichCmdError::Terminal(format!("Failed to disable raw mode: {}", e)))?;
+    pub fn input(&mut self, input_type: &InputType, name: &str) -> Result<String> {
+        // Display prompt
+        let prompt = format!("Enter {}: ", name);
+        self.write(&prompt.cyan().to_string())?;
+        self.flush()?;
 
-        let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
-            .with_prompt("Choose an option:")
-            .items(options)
-            .interact_opt()
-            .map_err(|e| WhichCmdError::Terminal(format!("Failed to get selection: {}", e)))?;
+        // Enable cursor and collect input
+        self.writer
+            .execute(cursor::Show)
+            .map_err(|e| WhichCmdError::Terminal(format!("Failed to show cursor: {}", e)))?;
 
-        terminal::enable_raw_mode()
-            .map_err(|e| WhichCmdError::Terminal(format!("Failed to enable raw mode: {}", e)))?;
+        let mut input_str = String::new();
 
-        // FuzzySelect will show the cursor, so hide it again
+        loop {
+            if let event::Event::Key(event::KeyEvent { code, .. }) = event::read()
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to read event: {}", e)))?
+            {
+                match code {
+                    event::KeyCode::Enter => break,
+                    event::KeyCode::Esc => {
+                        self.writer.execute(cursor::Hide).map_err(|e| {
+                            WhichCmdError::Terminal(format!("Failed to hide cursor: {}", e))
+                        })?;
+                        return Err(WhichCmdError::Terminal("Input cancelled".to_string()));
+                    }
+                    event::KeyCode::Char(c) => {
+                        // Validate input based on type
+                        match input_type {
+                            InputType::Number => {
+                                // Only allow digits and minus sign (at start)
+                                if c.is_ascii_digit() || (c == '-' && input_str.is_empty()) {
+                                    input_str.push(c);
+                                    self.writer.write_all(&[c as u8]).map_err(|e| {
+                                        WhichCmdError::Terminal(format!("Failed to write: {}", e))
+                                    })?;
+                                    self.flush()?;
+                                }
+                            }
+                            InputType::Text => {
+                                input_str.push(c);
+                                self.writer.write_all(&[c as u8]).map_err(|e| {
+                                    WhichCmdError::Terminal(format!("Failed to write: {}", e))
+                                })?;
+                                self.flush()?;
+                            }
+                        }
+                    }
+                    event::KeyCode::Backspace => {
+                        if !input_str.is_empty() {
+                            input_str.pop();
+                            // Move cursor back, write space, move cursor back again
+                            self.writer.execute(cursor::MoveLeft(1)).map_err(|e| {
+                                WhichCmdError::Terminal(format!("Failed to move cursor: {}", e))
+                            })?;
+                            self.writer.write_all(b" ").map_err(|e| {
+                                WhichCmdError::Terminal(format!("Failed to write: {}", e))
+                            })?;
+                            self.writer.execute(cursor::MoveLeft(1)).map_err(|e| {
+                                WhichCmdError::Terminal(format!("Failed to move cursor: {}", e))
+                            })?;
+                            self.flush()?;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // Hide cursor again
         self.writer
             .execute(cursor::Hide)
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to hide cursor: {}", e)))?;
 
-        Ok(selection)
-    }
+        // Validate number input
+        if let InputType::Number = input_type {
+            input_str
+                .parse::<i32>()
+                .map_err(|_| WhichCmdError::Terminal("Invalid number".to_string()))?;
+        }
 
-    pub fn input(&mut self, input_type: &InputType, name: &str) -> Result<String> {
-        let input = match input_type {
-            InputType::Text => dialoguer::Input::<String>::new()
-                .with_prompt(format!(" Enter {}", name))
-                .interact()
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to get text input: {}", e)))?,
-            InputType::Number => dialoguer::Input::<i32>::new()
-                .with_prompt(format!(" Enter {}", name))
-                .interact()
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to get number input: {}", e)))?
-                .to_string(),
-        };
-        Ok(input)
+        Ok(input_str)
     }
 
     /// Replaces the last line with an error message on the left and centered help text.
