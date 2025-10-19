@@ -35,7 +35,7 @@ impl Config {
         Config::from_contents(&contents)
     }
 
-    fn from_contents(contents: &str) -> Result<Self> {
+    pub fn from_contents(contents: &str) -> Result<Self> {
         let helper: ConfigHelper = serde_yaml::from_str(contents)?;
 
         // Recursively loop through the config and set the id of each node.

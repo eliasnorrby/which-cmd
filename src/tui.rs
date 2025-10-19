@@ -15,6 +15,30 @@ use std::rc::Rc;
 
 const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
 
+/// Rebuilds a path from a node ID by traversing the config tree.
+/// Returns the path and the index of the loop node if one was encountered.
+fn rebuild_path_from_id(
+    node_id: &str,
+    root_keys: &[Rc<Node>],
+) -> (Vec<Rc<Node>>, Option<usize>) {
+    let mut path: Vec<Rc<Node>> = Vec::new();
+    let mut loop_node_index: Option<usize> = None;
+    let mut lookup = root_keys;
+
+    for part in node_id.split("").filter(|part| !part.is_empty()) {
+        if let Some(node) = lookup.iter().find(|n| n.key == part) {
+            path.push(Rc::clone(node));
+            // Set loop_node_index if we encounter a loop node
+            if node.is_loop {
+                loop_node_index = Some(path.len() - 1);
+            }
+            lookup = &node.keys;
+        }
+    }
+
+    (path, loop_node_index)
+}
+
 fn format_node(node: &Node, opts: &Options) -> String {
     let sub_keys_count = node.keys.len();
     if sub_keys_count > 0 {
@@ -246,14 +270,10 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                             let selected_node = &options[selection];
 
                             // Rebuild path based on the selected node ID
-                            path.clear();
-                            let mut lookup = &config.keys;
-                            for part in selected_node.id.split("").filter(|part| !part.is_empty()) {
-                                if let Some(node) = lookup.iter().find(|n| n.key == part) {
-                                    path.push(Rc::clone(node));
-                                    lookup = &node.keys;
-                                }
-                            }
+                            let (new_path, new_loop_index) =
+                                rebuild_path_from_id(&selected_node.id, &config.keys);
+                            path = new_path;
+                            loop_node_index = new_loop_index;
                         } else {
                             pop_to_first_non_is_fleeting(&mut path);
                         }
@@ -305,5 +325,59 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                 _ => {}
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+
+    #[test]
+    fn test_loop_node_detection_after_search() {
+        // Create a config with a loop node structure like the user described:
+        // g -> z -> p (with loop: true) -> u, m
+        let yaml = r#"
+keys:
+  - key: g
+    value: git
+    keys:
+      - key: z
+        value: stash
+        keys:
+          - key: p
+            value: push
+            loop: true
+            keys:
+              - key: u
+                name: untracked
+                value: --include-untracked
+              - key: m
+                name: message
+                value: -m
+"#;
+        let config = Config::from_contents(yaml).unwrap();
+
+        // Simulate what happens after search: rebuild path from node ID "gzp"
+        let selected_id = "gzp"; // This is the ID for git stash push
+        let (path, loop_node_index) = rebuild_path_from_id(selected_id, &config.keys);
+
+        // Verify the path was built correctly
+        assert_eq!(path.len(), 3);
+        assert_eq!(path[0].key, "g");
+        assert_eq!(path[1].key, "z");
+        assert_eq!(path[2].key, "p");
+        assert!(path[2].is_loop, "The 'p' node should have is_loop = true");
+
+        // Verify the loop_node_index is set correctly
+        assert!(
+            loop_node_index.is_some(),
+            "loop_node_index should be set after navigating to a loop node via search"
+        );
+        assert_eq!(
+            loop_node_index,
+            Some(2),
+            "loop_node_index should point to the loop node at index 2"
+        );
     }
 }
