@@ -6,6 +6,7 @@ use crate::error::Result;
 pub enum Shell {
     Zsh,
     ZshTmux,
+    BashTmux,
 }
 
 pub fn integration_command(shell: Shell) -> Result<()> {
@@ -60,10 +61,46 @@ zle -N which_cmd_tmux_widget
 bindkey ' ' which_cmd_tmux_widget
 "#
             );
-        } // _ => {
-          //     eprintln!("Shell '{:?}' is not supported.", shell);
-          //     std::process::exit(1);
-          // }
+        }
+        Shell::BashTmux => {
+            println!(
+                r#"
+# which-cmd integration for bash + tmux
+which_cmd_tmux_widget() {{
+  if [[ "$READLINE_LINE" == "" ]]; then
+    local result
+    tmux display-popup -S fg=brightblack -T '#[fg=white bold] which-cmd #[fg=default]' -y P -w 95% -h 12 -b rounded -E "which-cmd build --immediate"
+    result=$(which-cmd get)
+    if [[ "$result" != "" ]]; then
+      if [[ "$result" = __IMMEDIATE__* ]]; then
+        local cmd
+        cmd=$(echo "$result" | cut -d' ' -f2-)
+        READLINE_LINE="$cmd"
+        READLINE_POINT=${{#READLINE_LINE}}
+        # Simulate pressing Enter by inserting newline
+        eval "$READLINE_LINE"
+        READLINE_LINE=""
+        READLINE_POINT=0
+      else
+        READLINE_LINE+="$result"
+        READLINE_POINT=${{#READLINE_LINE}}
+      fi
+    fi
+  fi
+}}
+
+which_cmd_tmux_space() {{
+  if [[ "$READLINE_LINE" == "" ]]; then
+    which_cmd_tmux_widget
+  else
+    READLINE_LINE+=" "
+    READLINE_POINT=${{#READLINE_LINE}}
+  fi
+}}
+bind -x '"\x20": which_cmd_tmux_space'
+"#
+            );
+        }
     }
     Ok(())
 }
