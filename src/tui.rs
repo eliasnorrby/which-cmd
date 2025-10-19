@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::constants::{help_text, ERROR_DISPLAY_DURATION_MS, IMMEDIATE_PREFIX, NUMBER_OF_ROWS};
 use crate::error::{Result, WhichCmdError};
 use crate::fuzzy_select::FuzzySelect;
+use crate::input::Input;
 use crate::node::Node;
 use crate::options::Options;
 use crate::path::{compose_command, pop_to_first_non_is_fleeting};
@@ -266,9 +267,12 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                                 pop_to_first_non_is_fleeting(&mut path);
                             }
                         } else if let Some(input_type) = &node.input_type {
-                            terminal.prepare_for_input(&command_indicator(&path))?;
-                            let input = terminal.input(input_type, &node.name)?;
-                            path.push(node.with_input(&input.to_string()));
+                            let input_component = Input::new(input_type, &node.name);
+                            if let Some(input) = input_component.interact(&mut terminal)? {
+                                path.push(node.with_input(&input));
+                            } else {
+                                pop_to_first_non_is_fleeting(&mut path);
+                            }
                         }
                     } else if c == '/' {
                         // Search

@@ -1,9 +1,7 @@
 use crate::error::{Result, WhichCmdError};
-use crate::node::InputType;
 
 use crossterm::{
     cursor::{self},
-    event,
     style::Stylize,
     terminal::{self, ClearType},
     ExecutableCommand,
@@ -319,94 +317,18 @@ impl<W: Write> Terminal<W> {
         Ok(())
     }
 
-    pub fn prepare_for_input(&mut self, content: &str) -> Result<()> {
-        self.clear_screen()?;
-        self.write_line(content)?;
-        self.blank_line()?;
-        Ok(())
-    }
-
-    pub fn input(&mut self, input_type: &InputType, name: &str) -> Result<String> {
-        // Display prompt
-        let prompt = format!("Enter {}: ", name);
-        self.write(&prompt.cyan().to_string())?;
-        self.flush()?;
-
-        // Enable cursor and collect input
+    pub fn show_cursor(&mut self) -> Result<()> {
         self.writer
             .execute(cursor::Show)
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to show cursor: {}", e)))?;
+        Ok(())
+    }
 
-        let mut input_str = String::new();
-
-        loop {
-            if let event::Event::Key(event::KeyEvent { code, .. }) = event::read()
-                .map_err(|e| WhichCmdError::Terminal(format!("Failed to read event: {}", e)))?
-            {
-                match code {
-                    event::KeyCode::Enter => break,
-                    event::KeyCode::Esc => {
-                        self.writer.execute(cursor::Hide).map_err(|e| {
-                            WhichCmdError::Terminal(format!("Failed to hide cursor: {}", e))
-                        })?;
-                        return Err(WhichCmdError::Terminal("Input cancelled".to_string()));
-                    }
-                    event::KeyCode::Char(c) => {
-                        // Validate input based on type
-                        match input_type {
-                            InputType::Number => {
-                                // Only allow digits and minus sign (at start)
-                                if c.is_ascii_digit() || (c == '-' && input_str.is_empty()) {
-                                    input_str.push(c);
-                                    self.writer.write_all(&[c as u8]).map_err(|e| {
-                                        WhichCmdError::Terminal(format!("Failed to write: {}", e))
-                                    })?;
-                                    self.flush()?;
-                                }
-                            }
-                            InputType::Text => {
-                                input_str.push(c);
-                                self.writer.write_all(&[c as u8]).map_err(|e| {
-                                    WhichCmdError::Terminal(format!("Failed to write: {}", e))
-                                })?;
-                                self.flush()?;
-                            }
-                        }
-                    }
-                    event::KeyCode::Backspace => {
-                        if !input_str.is_empty() {
-                            input_str.pop();
-                            // Move cursor back, write space, move cursor back again
-                            self.writer.execute(cursor::MoveLeft(1)).map_err(|e| {
-                                WhichCmdError::Terminal(format!("Failed to move cursor: {}", e))
-                            })?;
-                            self.writer.write_all(b" ").map_err(|e| {
-                                WhichCmdError::Terminal(format!("Failed to write: {}", e))
-                            })?;
-                            self.writer.execute(cursor::MoveLeft(1)).map_err(|e| {
-                                WhichCmdError::Terminal(format!("Failed to move cursor: {}", e))
-                            })?;
-                            self.flush()?;
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
-
-        // Hide cursor again
+    pub fn hide_cursor(&mut self) -> Result<()> {
         self.writer
             .execute(cursor::Hide)
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to hide cursor: {}", e)))?;
-
-        // Validate number input
-        if let InputType::Number = input_type {
-            input_str
-                .parse::<i32>()
-                .map_err(|_| WhichCmdError::Terminal("Invalid number".to_string()))?;
-        }
-
-        Ok(input_str)
+        Ok(())
     }
 
     /// Replaces the last line with an error message on the left and centered help text.
