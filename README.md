@@ -28,6 +28,9 @@ Instead of memorizing complex command flags or searching through man pages, defi
 
 ### From crates.io (requires Rust)
 
+> [!NOTE]
+> Coming soon
+
 ```bash
 cargo install which-cmd
 ```
@@ -42,7 +45,10 @@ cargo install --path .
 
 ### Binary releases
 
-Download precompiled binaries from the [releases page](https://github.com/eliasnorrby/which-cmd/releases) (coming soon).
+> [!NOTE]
+> Coming soon
+
+Download precompiled binaries from the [releases page](https://github.com/eliasnorrby/which-cmd/releases).
 
 ## Quick Start
 
@@ -74,9 +80,6 @@ eval "$(which-cmd integration bash)"
 
 # For zsh, add to ~/.zshrc:
 eval "$(which-cmd integration zsh)"
-
-# For fish, add to ~/.config/fish/config.fish:
-which-cmd integration fish | source
 ```
 
 4. **Use it**:
@@ -241,6 +244,7 @@ See [fixtures/commands.yml](fixtures/commands.yml) for a comprehensive example c
 The shell integration allows you to invoke `which-cmd` with a keybinding and have the built command inserted into your current command line.
 
 Integration code handles:
+
 - Launching the TUI
 - Capturing the built command
 - Inserting it at the cursor position
