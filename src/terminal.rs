@@ -12,14 +12,43 @@ use std::io::Write;
 
 pub struct Terminal<W: Write> {
     writer: W,
+    start_row: u16,
+    tui_height: u16,
 }
 
 impl<W: Write> Terminal<W> {
     pub fn new(writer: W) -> Self {
-        Terminal { writer }
+        Terminal {
+            writer,
+            start_row: 0,
+            tui_height: 0,
+        }
     }
 
     pub fn setup(&mut self) -> Result<()> {
+        // Save the current cursor position
+        let pos = cursor::position()
+            .map_err(|e| WhichCmdError::Terminal(format!("Failed to get cursor position: {}", e)))?;
+        self.start_row = pos.1;
+
+        // Calculate TUI height using the centralized function
+        self.tui_height = crate::constants::calculate_tui_height() as u16;
+
+        // Ensure we have enough space below the cursor
+        // If not, move down to create space
+        let (_, rows) = terminal::size()
+            .map_err(|e| WhichCmdError::Terminal(format!("Failed to get terminal size: {}", e)))?;
+
+        if self.start_row + self.tui_height > rows {
+            // We need to scroll down to make room
+            let lines_needed = self.start_row + self.tui_height - rows;
+            for _ in 0..lines_needed {
+                self.writer.write_all(b"\r\n")
+                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write newline: {}", e)))?;
+            }
+            self.start_row = rows.saturating_sub(self.tui_height);
+        }
+
         terminal::enable_raw_mode()
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to enable raw mode: {}", e)))?;
         self.writer
@@ -30,7 +59,14 @@ impl<W: Write> Terminal<W> {
     }
 
     pub fn teardown(&mut self) -> Result<()> {
+        // Clear the TUI area
         self.clear_screen()?;
+
+        // Position cursor at the start row (where the TUI was)
+        self.writer
+            .execute(cursor::MoveTo(0, self.start_row))
+            .map_err(|e| WhichCmdError::Terminal(format!("Failed to move cursor: {}", e)))?;
+
         self.writer
             .execute(cursor::Show)
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to show cursor: {}", e)))?;
@@ -40,11 +76,19 @@ impl<W: Write> Terminal<W> {
     }
 
     pub fn clear_screen(&mut self) -> Result<()> {
+        // Move cursor to start position
         self.writer
-            .execute(terminal::Clear(ClearType::All))
+            .execute(cursor::MoveTo(0, self.start_row))
+            .map_err(|e| WhichCmdError::Terminal(format!("Failed to move cursor: {}", e)))?;
+
+        // Clear from cursor to end of screen (will clear our TUI area)
+        self.writer
+            .execute(terminal::Clear(ClearType::FromCursorDown))
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to clear screen: {}", e)))?;
+
+        // Move back to start position
         self.writer
-            .execute(cursor::MoveTo(0, 0))
+            .execute(cursor::MoveTo(0, self.start_row))
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to move cursor: {}", e)))?;
         Ok(())
     }
