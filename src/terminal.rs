@@ -302,16 +302,6 @@ impl<W: Write> Terminal<W> {
         Ok(())
     }
 
-    pub fn start_of_row(&mut self) -> Result<()> {
-        let pos = cursor::position().map_err(|e| {
-            WhichCmdError::Terminal(format!("Failed to get cursor position: {}", e))
-        })?;
-        self.writer
-            .execute(cursor::MoveTo(0, pos.1))
-            .map_err(|e| WhichCmdError::Terminal(format!("Failed to move cursor: {}", e)))?;
-        Ok(())
-    }
-
     pub fn flush(&mut self) -> Result<()> {
         self.writer
             .flush()
@@ -361,5 +351,116 @@ impl<W: Write> Terminal<W> {
                 .to_string(),
         };
         Ok(input)
+    }
+
+    /// Replaces the last line with an error message on the left and centered help text.
+    /// This is used to display error messages alongside the close/back labels.
+    /// The help text stays in the same centered position regardless of the error message.
+    pub fn replace_last_line(&mut self, error_msg: &str, help_text: &str) -> Result<()> {
+        // Calculate the row position of the last line
+        // If border is enabled: start_row + tui_height - 2 (one line before bottom border)
+        // If no border: start_row + tui_height - 1
+        let last_line_row = if self.border {
+            self.start_row + self.tui_height - 2
+        } else {
+            self.start_row + self.tui_height - 1
+        };
+
+        // Move cursor to the start of the last line
+        self.writer
+            .execute(cursor::MoveTo(0, last_line_row))
+            .map_err(|e| WhichCmdError::Terminal(format!("Failed to move cursor: {}", e)))?;
+
+        // Clear the current line
+        self.writer
+            .execute(terminal::Clear(ClearType::CurrentLine))
+            .map_err(|e| WhichCmdError::Terminal(format!("Failed to clear line: {}", e)))?;
+
+        if self.border {
+            // With border: left border + error + padding + centered help text + padding + right border
+            let left_border = format!("{} ", "│".dark_grey());
+            self.writer
+                .write_all(left_border.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write left border: {}", e)))?;
+
+            // Write error message
+            self.writer
+                .write_all(error_msg.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write error: {}", e)))?;
+
+            // Calculate available width for content (terminal width - borders)
+            let available_width = self.terminal_width.saturating_sub(4) as usize; // 4 for "│ " and " │"
+            let error_length = console::measure_text_width(error_msg);
+            let help_length = console::measure_text_width(help_text);
+
+            // Calculate where help text should be centered
+            let help_start_col = (available_width.saturating_sub(help_length)) / 2;
+
+            // Calculate padding before help text (accounting for error message)
+            let padding_before_help = help_start_col.saturating_sub(error_length);
+
+            // Write padding before help text
+            for _ in 0..padding_before_help {
+                self.writer
+                    .write_all(b" ")
+                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+            }
+
+            // Write help text
+            self.writer
+                .write_all(help_text.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write help text: {}", e)))?;
+
+            // Calculate padding after help text
+            let used_width = error_length + padding_before_help + help_length;
+            let padding_after_help = available_width.saturating_sub(used_width);
+
+            // Write padding after help text
+            for _ in 0..padding_after_help {
+                self.writer
+                    .write_all(b" ")
+                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+            }
+
+            // Write right border
+            let right_border = format!(" {}", "│".dark_grey());
+            self.writer
+                .write_all(right_border.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write right border: {}", e)))?;
+        } else {
+            // Without border: error + padding + centered help text + padding
+            self.writer
+                .write_all(b" ")
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write space: {}", e)))?;
+
+            // Write error message
+            self.writer
+                .write_all(error_msg.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write error: {}", e)))?;
+
+            let available_width = self.terminal_width as usize;
+            let error_length = console::measure_text_width(error_msg) + 1; // +1 for the leading space
+            let help_length = console::measure_text_width(help_text);
+
+            // Calculate where help text should be centered
+            let help_start_col = (available_width.saturating_sub(help_length)) / 2;
+
+            // Calculate padding before help text (accounting for error message)
+            let padding_before_help = help_start_col.saturating_sub(error_length);
+
+            // Write padding before help text
+            for _ in 0..padding_before_help {
+                self.writer
+                    .write_all(b" ")
+                    .map_err(|e| WhichCmdError::Terminal(format!("Failed to write padding: {}", e)))?;
+            }
+
+            // Write help text
+            self.writer
+                .write_all(help_text.as_bytes())
+                .map_err(|e| WhichCmdError::Terminal(format!("Failed to write help text: {}", e)))?;
+        }
+
+        Ok(())
     }
 }

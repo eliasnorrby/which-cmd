@@ -278,11 +278,14 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                             pop_to_first_non_is_fleeting(&mut path);
                         }
                     } else {
-                        // Invalid key pressed
-                        terminal.start_of_row()?;
-                        terminal.write(&format!("{} {}", "Invalid key:".red(), c))?;
+                        // Invalid key pressed - show error alongside help text
+                        let help_text = format!(
+                            "󱊷  {}  󰁮  {}",
+                            "close".dark_grey(),
+                            "back".dark_grey()
+                        );
+                        terminal.replace_last_line(&format!("{} {}", "Invalid key:".red(), c), &help_text)?;
                         terminal.flush()?;
-
                         // Display error for configured duration, or until user presses a key
                         let _ = event::poll(std::time::Duration::from_millis(
                             ERROR_DISPLAY_DURATION_MS,
@@ -301,11 +304,14 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                 }
                 KeyCode::Enter => {
                     if path.is_empty() {
-                        // Can't execute an empty command
-                        terminal.start_of_row()?;
-                        terminal.write(&format!("{}", "No command to execute".red()))?;
+                        // Can't execute an empty command - show error alongside help text
+                        let help_text = format!(
+                            "󱊷  {}  󰁮  {}",
+                            "close".dark_grey(),
+                            "back".dark_grey()
+                        );
+                        terminal.replace_last_line(&format!("{}", "No command to execute".red()), &help_text)?;
                         terminal.flush()?;
-
                         // Display error for configured duration, or until user presses a key
                         let _ = event::poll(std::time::Duration::from_millis(
                             ERROR_DISPLAY_DURATION_MS,
