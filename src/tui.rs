@@ -259,7 +259,9 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                         terminal.start_of_row()?;
                         terminal.write(&format!("{} {}", "Invalid key:".red(), c))?;
                         terminal.flush()?;
-                        std::thread::sleep(std::time::Duration::from_millis(
+
+                        // Display error for configured duration, or until user presses a key
+                        let _ = event::poll(std::time::Duration::from_millis(
                             ERROR_DISPLAY_DURATION_MS,
                         ));
                     }
@@ -280,7 +282,9 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                         terminal.start_of_row()?;
                         terminal.write(&format!("{}", "No command to execute".red()))?;
                         terminal.flush()?;
-                        std::thread::sleep(std::time::Duration::from_millis(
+
+                        // Display error for configured duration, or until user presses a key
+                        let _ = event::poll(std::time::Duration::from_millis(
                             ERROR_DISPLAY_DURATION_MS,
                         ));
                     } else {
