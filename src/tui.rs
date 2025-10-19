@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::constants::{ERROR_DISPLAY_DURATION_MS, NUMBER_OF_ROWS};
+use crate::constants::{ERROR_DISPLAY_DURATION_MS, IMMEDIATE_PREFIX, NUMBER_OF_ROWS};
 use crate::error::{Result, WhichCmdError};
 use crate::fuzzy_select::FuzzySelect;
 use crate::node::Node;
@@ -13,8 +13,6 @@ use crossterm::{
     style::Stylize,
 };
 use std::rc::Rc;
-
-const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
 
 /// Rebuilds a path from a node ID by traversing the config tree.
 /// Returns the path and the index of the loop node if one was encountered.
