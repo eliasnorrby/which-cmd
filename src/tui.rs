@@ -11,6 +11,7 @@ use crossterm::{
     event::{self, Event, KeyCode},
     style::Stylize,
 };
+use std::rc::Rc;
 
 const IMMEDIATE_PREFIX: &str = "__IMMEDIATE__";
 
@@ -53,7 +54,7 @@ fn highlight_command(command: &str) -> String {
     highlighted
 }
 
-fn command_indicator(path: &[Node]) -> String {
+fn command_indicator(path: &[Rc<Node>]) -> String {
     format!(
         "{} {}",
         "Command:".grey(),
@@ -68,7 +69,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
     terminal.set_border(opts.border);
     terminal.setup()?;
 
-    let mut path: Vec<Node> = Vec::new();
+    let mut path: Vec<Rc<Node>> = Vec::new();
     let mut loop_node_index: Option<usize> = None;
 
     loop {
@@ -102,7 +103,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                         .keys
                         .iter()
                         .filter(|n| n.is_repeatable || !path.iter().any(|p| p.id == n.id))
-                        .cloned()
+                        .map(Rc::clone)
                         .collect()
                 } else {
                     last_node.keys.clone()
@@ -198,7 +199,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                 KeyCode::Char(c) => {
                     // Handle character input
                     if let Some(node) = current_nodes.iter().find(|n| n.key == c.to_string()) {
-                        path.push(node.clone());
+                        path.push(Rc::clone(node));
                         if node.is_loop {
                             loop_node_index = Some(path.len() - 1);
                         }
@@ -249,7 +250,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                             let mut lookup = &config.keys;
                             for part in selected_node.id.split("").filter(|part| !part.is_empty()) {
                                 if let Some(node) = lookup.iter().find(|n| n.key == part) {
-                                    path.push(node.clone());
+                                    path.push(Rc::clone(node));
                                     lookup = &node.keys;
                                 }
                             }

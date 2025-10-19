@@ -1,8 +1,9 @@
 use serde::Deserialize;
+use std::rc::Rc;
 
 use crate::constants::{CHOICE_KEY, INPUT_KEY};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Node {
     pub id: String,
     pub key: String,
@@ -13,7 +14,7 @@ pub struct Node {
     pub is_anchor: bool,
     pub is_loop: bool,
     pub is_repeatable: bool,
-    pub keys: Vec<Node>,
+    pub keys: Vec<Rc<Node>>,
     pub choices: Vec<String>,
     pub input_type: Option<InputType>,
 }
@@ -88,7 +89,7 @@ impl<'de> Deserialize<'de> for Node {
             is_anchor: helper.anchor,
             is_loop: helper.r#loop,
             is_repeatable: helper.repeatable,
-            keys: helper.keys,
+            keys: helper.keys.into_iter().map(Rc::new).collect(),
             choices: helper.choices,
             input_type: helper.input,
         })
@@ -117,10 +118,10 @@ impl Node {
     }
 
     #[must_use]
-    pub fn with_selection(&self, choice: usize) -> Option<Node> {
+    pub fn with_selection(&self, choice: usize) -> Option<Rc<Node>> {
         let selection = self.choices.get(choice)?;
 
-        Some(Node {
+        Some(Rc::new(Node {
             id: Node::id_from_parent(&self.id, CHOICE_KEY),
             key: CHOICE_KEY.to_string(),
             name: selection.to_string(),
@@ -133,12 +134,12 @@ impl Node {
             keys: vec![],
             choices: vec![],
             input_type: None,
-        })
+        }))
     }
 
     #[must_use]
-    pub fn with_input(&self, input: &str) -> Node {
-        Node {
+    pub fn with_input(&self, input: &str) -> Rc<Node> {
+        Rc::new(Node {
             id: Node::id_from_parent(&self.id, input),
             key: INPUT_KEY.to_string(),
             name: input.to_string(),
@@ -151,7 +152,7 @@ impl Node {
             keys: vec![],
             choices: vec![],
             input_type: None,
-        }
+        })
     }
 }
 
@@ -159,8 +160,8 @@ impl Node {
 mod tests {
     use super::*;
 
-    fn create_test_node(id: &str, key: &str, name: &str, value: &str) -> Node {
-        Node {
+    fn create_test_node(id: &str, key: &str, name: &str, value: &str) -> Rc<Node> {
+        Rc::new(Node {
             id: id.to_string(),
             key: key.to_string(),
             name: name.to_string(),
@@ -173,7 +174,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
             input_type: None,
-        }
+        })
     }
 
     #[test]
@@ -184,30 +185,78 @@ mod tests {
 
     #[test]
     fn test_is_leaf_with_keys() {
-        let mut node = create_test_node("g", "g", "git", "git");
-        node.keys
-            .push(create_test_node("gs", "s", "status", "status"));
+        let child = create_test_node("gs", "s", "status", "status");
+        let node = Rc::new(Node {
+            id: "g".to_string(),
+            key: "g".to_string(),
+            name: "git".to_string(),
+            value: "git".to_string(),
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            is_repeatable: false,
+            keys: vec![child],
+            choices: vec![],
+            input_type: None,
+        });
         assert!(!node.is_leaf());
     }
 
     #[test]
     fn test_is_leaf_with_choices() {
-        let mut node = create_test_node("g", "g", "git", "git");
-        node.choices = vec!["option1".to_string(), "option2".to_string()];
+        let node = Rc::new(Node {
+            id: "g".to_string(),
+            key: "g".to_string(),
+            name: "git".to_string(),
+            value: "git".to_string(),
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            is_repeatable: false,
+            keys: vec![],
+            choices: vec!["option1".to_string(), "option2".to_string()],
+            input_type: None,
+        });
         assert!(!node.is_leaf());
     }
 
     #[test]
     fn test_is_leaf_with_input() {
-        let mut node = create_test_node("g", "g", "git", "git");
-        node.input_type = Some(InputType::Text);
+        let node = Rc::new(Node {
+            id: "g".to_string(),
+            key: "g".to_string(),
+            name: "git".to_string(),
+            value: "git".to_string(),
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            is_repeatable: false,
+            keys: vec![],
+            choices: vec![],
+            input_type: Some(InputType::Text),
+        });
         assert!(!node.is_leaf());
     }
 
     #[test]
     fn test_has_choices_true() {
-        let mut node = create_test_node("g", "g", "git", "git");
-        node.choices = vec!["option1".to_string()];
+        let node = Rc::new(Node {
+            id: "g".to_string(),
+            key: "g".to_string(),
+            name: "git".to_string(),
+            value: "git".to_string(),
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            is_repeatable: false,
+            keys: vec![],
+            choices: vec!["option1".to_string()],
+            input_type: None,
+        });
         assert!(node.has_choices());
     }
 
@@ -231,15 +280,42 @@ mod tests {
 
     #[test]
     fn test_set_id_from_parent() {
-        let mut node = create_test_node("", "s", "status", "status");
-        node.set_id_from_parent("git");
-        assert_eq!(node.id, "gits");
+        let node = Rc::new(Node {
+            id: "".to_string(),
+            key: "s".to_string(),
+            name: "status".to_string(),
+            value: "status".to_string(),
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            is_repeatable: false,
+            keys: vec![],
+            choices: vec![],
+            input_type: None,
+        });
+        // Can't mutate inside Rc, so we'll use Rc::make_mut to get mutable reference
+        let mut node_mut = Rc::try_unwrap(node).unwrap();
+        node_mut.set_id_from_parent("git");
+        assert_eq!(node_mut.id, "gits");
     }
 
     #[test]
     fn test_with_selection_valid_index() {
-        let mut node = create_test_node("g", "g", "git", "git");
-        node.choices = vec!["branch".to_string(), "commit".to_string()];
+        let node = Rc::new(Node {
+            id: "g".to_string(),
+            key: "g".to_string(),
+            name: "git".to_string(),
+            value: "git".to_string(),
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            is_repeatable: false,
+            keys: vec![],
+            choices: vec!["branch".to_string(), "commit".to_string()],
+            input_type: None,
+        });
 
         let selected = node.with_selection(0);
         assert!(selected.is_some());
@@ -253,8 +329,20 @@ mod tests {
 
     #[test]
     fn test_with_selection_invalid_index() {
-        let mut node = create_test_node("g", "g", "git", "git");
-        node.choices = vec!["branch".to_string()];
+        let node = Rc::new(Node {
+            id: "g".to_string(),
+            key: "g".to_string(),
+            name: "git".to_string(),
+            value: "git".to_string(),
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            is_repeatable: false,
+            keys: vec![],
+            choices: vec!["branch".to_string()],
+            input_type: None,
+        });
 
         let selected = node.with_selection(5);
         assert!(selected.is_none());

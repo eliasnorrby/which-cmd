@@ -1,13 +1,20 @@
 use serde::Deserialize;
 use std::fs;
+use std::rc::Rc;
 
 use crate::constants::*;
 use crate::error::{Result, WhichCmdError};
 use crate::node::Node;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct Config {
-    pub keys: Vec<Node>,
+    pub keys: Vec<Rc<Node>>,
+}
+
+// Helper struct for deserialization
+#[derive(Deserialize)]
+struct ConfigHelper {
+    keys: Vec<Node>,
 }
 
 impl Config {
@@ -29,7 +36,7 @@ impl Config {
     }
 
     fn from_contents(contents: &str) -> Result<Self> {
-        let mut config: Config = serde_yaml::from_str(contents)?;
+        let helper: ConfigHelper = serde_yaml::from_str(contents)?;
 
         // Recursively loop through the config and set the id of each node.
         // It should be a concatenation of the keys of all the parent nodes
@@ -39,19 +46,25 @@ impl Config {
             let keys: Vec<&str> = node.keys.iter().map(|n| n.key.as_str()).collect();
             Config::ensure_unique(&node.id, &keys)?;
             for child in node.keys.iter_mut() {
-                set_id(child, &node.id)?;
+                // Get mutable reference to the node inside Rc
+                let child_mut = Rc::get_mut(child)
+                    .expect("Should have exclusive access during initialization");
+                set_id(child_mut, &node.id)?;
             }
             Ok(())
         }
 
-        let keys: Vec<&str> = config.keys.iter().map(|n| n.key.as_str()).collect();
+        let keys: Vec<&str> = helper.keys.iter().map(|n| n.key.as_str()).collect();
         Config::ensure_unique("", &keys)?;
 
-        for node in config.keys.iter_mut() {
+        let mut nodes = helper.keys;
+        for node in nodes.iter_mut() {
             set_id(node, "")?;
         }
 
-        Ok(config)
+        Ok(Config {
+            keys: nodes.into_iter().map(Rc::new).collect(),
+        })
     }
 
     fn ensure_unique(parent_id: &str, keys: &[&str]) -> Result<()> {

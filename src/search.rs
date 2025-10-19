@@ -1,4 +1,5 @@
 use crate::{node::Node, path::compose_command};
+use std::rc::Rc;
 
 pub struct SearchNode {
     pub id: String,
@@ -31,21 +32,21 @@ pub fn format_single_search_option(node: &SearchNode, command_length: usize) -> 
     )
 }
 
-pub fn get_search_options(nodes: &[Node]) -> Vec<SearchNode> {
+pub fn get_search_options(nodes: &[Rc<Node>]) -> Vec<SearchNode> {
     nodes
         .iter()
-        .flat_map(|node| get_search_options_recursively(&node.keys, std::slice::from_ref(node)))
+        .flat_map(|node| get_search_options_recursively(&node.keys, &[Rc::clone(node)]))
         .collect()
 }
 
-pub fn get_search_options_recursively(nodes: &[Node], path: &[Node]) -> Vec<SearchNode> {
+pub fn get_search_options_recursively(nodes: &[Rc<Node>], path: &[Rc<Node>]) -> Vec<SearchNode> {
     nodes
         .iter()
         .flat_map(|node| {
-            let new_path: Vec<Node> = path
+            let new_path: Vec<Rc<Node>> = path
                 .iter()
-                .cloned()
-                .chain(std::iter::once(node.clone()))
+                .map(Rc::clone)
+                .chain(std::iter::once(Rc::clone(node)))
                 .collect();
             let command = compose_command(&new_path);
 
@@ -67,8 +68,8 @@ pub fn get_search_options_recursively(nodes: &[Node], path: &[Node]) -> Vec<Sear
 mod tests {
     use super::*;
 
-    fn create_test_node(id: &str, key: &str, value: &str, children: Vec<Node>) -> Node {
-        Node {
+    fn create_test_node(id: &str, key: &str, value: &str, children: Vec<Rc<Node>>) -> Rc<Node> {
+        Rc::new(Node {
             id: id.to_string(),
             key: key.to_string(),
             name: value.to_string(),
@@ -81,7 +82,7 @@ mod tests {
             keys: children,
             choices: vec![],
             input_type: None,
-        }
+        })
     }
 
     #[test]

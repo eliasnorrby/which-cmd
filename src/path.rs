@@ -1,6 +1,7 @@
 use crate::node::Node;
+use std::rc::Rc;
 
-pub fn pop_to_first_non_is_fleeting(path: &mut Vec<Node>) {
+pub fn pop_to_first_non_is_fleeting(path: &mut Vec<Rc<Node>>) {
     while let Some(node) = path.pop() {
         if !node.is_fleeting {
             path.push(node);
@@ -10,7 +11,7 @@ pub fn pop_to_first_non_is_fleeting(path: &mut Vec<Node>) {
 }
 
 #[must_use]
-pub fn compose_command(path: &[Node]) -> String {
+pub fn compose_command(path: &[Rc<Node>]) -> String {
     // Start building the command from the last anchor point
     let mut command_parts = Vec::new();
     let mut start_index = 0;
@@ -30,36 +31,34 @@ mod tests {
     use super::*;
     use crate::node::Node;
 
+    fn create_test_node(
+        id: &str,
+        key: &str,
+        name: &str,
+        value: &str,
+        is_anchor: bool,
+        is_fleeting: bool,
+    ) -> Rc<Node> {
+        Rc::new(Node {
+            id: id.into(),
+            key: key.into(),
+            name: name.into(),
+            value: value.into(),
+            is_immediate: false,
+            is_fleeting,
+            is_anchor,
+            is_loop: false,
+            is_repeatable: false,
+            keys: vec![],
+            choices: vec![],
+            input_type: None,
+        })
+    }
+
     #[test]
     fn test_compose_command_no_anchor() {
-        let node1 = Node {
-            id: "g".into(),
-            key: "g".into(),
-            name: "git".into(),
-            value: "git".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let node2 = Node {
-            id: "s".into(),
-            key: "s".into(),
-            name: "status".into(),
-            value: "status".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
+        let node1 = create_test_node("g", "g", "git", "git", false, false);
+        let node2 = create_test_node("s", "s", "status", "status", false, false);
         let path = vec![node1, node2];
         let command = compose_command(&path);
         assert_eq!(command, "git status");
@@ -67,48 +66,9 @@ mod tests {
 
     #[test]
     fn test_compose_command_with_anchor() {
-        let node1 = Node {
-            id: "g".into(),
-            key: "g".into(),
-            name: "git".into(),
-            value: "git".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let node2 = Node {
-            id: "h".into(),
-            key: "h".into(),
-            name: "GitHub".into(),
-            value: "gh".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: true,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let node3 = Node {
-            id: "p".into(),
-            key: "p".into(),
-            name: "pull request".into(),
-            value: "pr".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
+        let node1 = create_test_node("g", "g", "git", "git", false, false);
+        let node2 = create_test_node("h", "h", "GitHub", "gh", true, false);
+        let node3 = create_test_node("p", "p", "pull request", "pr", false, false);
         let path = vec![node1, node2, node3];
         let command = compose_command(&path);
         assert_eq!(command, "gh pr");
@@ -116,27 +76,14 @@ mod tests {
 
     #[test]
     fn test_compose_command_empty_path() {
-        let path: Vec<Node> = vec![];
+        let path: Vec<Rc<Node>> = vec![];
         let command = compose_command(&path);
         assert_eq!(command, "");
     }
 
     #[test]
     fn test_compose_command_single_node() {
-        let node = Node {
-            id: "g".into(),
-            key: "g".into(),
-            name: "git".into(),
-            value: "git".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
+        let node = create_test_node("g", "g", "git", "git", false, false);
         let path = vec![node];
         let command = compose_command(&path);
         assert_eq!(command, "git");
@@ -144,21 +91,8 @@ mod tests {
 
     #[test]
     fn test_compose_command_with_empty_values() {
-        let node1 = Node {
-            id: "g".into(),
-            key: "g".into(),
-            name: "git".into(),
-            value: "git".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let node2 = Node {
+        let node1 = create_test_node("g", "g", "git", "git", false, false);
+        let node2 = Rc::new(Node {
             id: "s".into(),
             key: "s".into(),
             name: "status".into(),
@@ -171,7 +105,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
             input_type: None,
-        };
+        });
         let path = vec![node1, node2];
         let command = compose_command(&path);
         assert_eq!(command, "git ");
@@ -179,43 +113,17 @@ mod tests {
 
     #[test]
     fn test_pop_to_first_non_is_fleeting_empty_path() {
-        let mut path: Vec<Node> = vec![];
+        let mut path: Vec<Rc<Node>> = vec![];
         pop_to_first_non_is_fleeting(&mut path);
         assert_eq!(path.len(), 0);
     }
 
     #[test]
     fn test_pop_to_first_non_is_fleeting_no_fleeting() {
-        let node1 = Node {
-            id: "g".into(),
-            key: "g".into(),
-            name: "git".into(),
-            value: "git".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let node2 = Node {
-            id: "s".into(),
-            key: "s".into(),
-            name: "status".into(),
-            value: "status".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
+        let node1 = create_test_node("g", "g", "git", "git", false, false);
+        let node2 = create_test_node("s", "s", "status", "status", false, false);
 
-        let mut path = vec![node1.clone(), node2.clone()];
+        let mut path = vec![Rc::clone(&node1), Rc::clone(&node2)];
         pop_to_first_non_is_fleeting(&mut path);
 
         // Should pop the last node (s) and put it back, so both nodes remain
@@ -225,36 +133,10 @@ mod tests {
 
     #[test]
     fn test_pop_to_first_non_is_fleeting_with_fleeting() {
-        let node1 = Node {
-            id: "g".into(),
-            key: "g".into(),
-            name: "git".into(),
-            value: "git".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let node2 = Node {
-            id: "choice".into(),
-            key: "c".into(),
-            name: "choice".into(),
-            value: "branch-name".into(),
-            is_immediate: false,
-            is_fleeting: true, // Fleeting node
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
+        let node1 = create_test_node("g", "g", "git", "git", false, false);
+        let node2 = create_test_node("choice", "c", "choice", "branch-name", false, true);
 
-        let mut path = vec![node1.clone(), node2];
+        let mut path = vec![Rc::clone(&node1), node2];
         pop_to_first_non_is_fleeting(&mut path);
 
         // Should pop through fleeting nodes and stop at the first non-fleeting
@@ -264,50 +146,11 @@ mod tests {
 
     #[test]
     fn test_pop_to_first_non_is_fleeting_multiple_fleeting() {
-        let node1 = Node {
-            id: "g".into(),
-            key: "g".into(),
-            name: "git".into(),
-            value: "git".into(),
-            is_immediate: false,
-            is_fleeting: false,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let node2 = Node {
-            id: "f1".into(),
-            key: "f1".into(),
-            name: "fleeting1".into(),
-            value: "fleeting1".into(),
-            is_immediate: false,
-            is_fleeting: true,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
-        let node3 = Node {
-            id: "f2".into(),
-            key: "f2".into(),
-            name: "fleeting2".into(),
-            value: "fleeting2".into(),
-            is_immediate: false,
-            is_fleeting: true,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
+        let node1 = create_test_node("g", "g", "git", "git", false, false);
+        let node2 = create_test_node("f1", "f1", "fleeting1", "fleeting1", false, true);
+        let node3 = create_test_node("f2", "f2", "fleeting2", "fleeting2", false, true);
 
-        let mut path = vec![node1.clone(), node2, node3];
+        let mut path = vec![Rc::clone(&node1), node2, node3];
         pop_to_first_non_is_fleeting(&mut path);
 
         // Should pop through all fleeting nodes
@@ -317,20 +160,7 @@ mod tests {
 
     #[test]
     fn test_pop_to_first_non_is_fleeting_all_fleeting() {
-        let node1 = Node {
-            id: "f1".into(),
-            key: "f1".into(),
-            name: "fleeting1".into(),
-            value: "fleeting1".into(),
-            is_immediate: false,
-            is_fleeting: true,
-            is_anchor: false,
-            is_loop: false,
-            is_repeatable: false,
-            keys: vec![],
-            choices: vec![],
-            input_type: None,
-        };
+        let node1 = create_test_node("f1", "f1", "fleeting1", "fleeting1", false, true);
 
         let mut path = vec![node1];
         pop_to_first_non_is_fleeting(&mut path);
