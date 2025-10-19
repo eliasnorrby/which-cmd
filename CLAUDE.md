@@ -94,9 +94,14 @@ cargo test test_name
 # Run clippy (linter)
 cargo clippy
 
+# Format code
+cargo fmt
+
 # Build and run
 cargo run -- <subcommand>
 ```
+
+NOTE: Always run `cargo fmt` before committing to ensure code style consistency.
 
 ### Application Subcommands
 
