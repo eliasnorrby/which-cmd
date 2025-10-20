@@ -9,11 +9,74 @@ properties:
 definitions:
   Node:
     type: object
+    required:
+      - key
     properties:
       key:
         type: string
         pattern: ^.$
+        description: Single character that triggers this node
+      name:
+        type: string
+        description: Human-readable description shown in the TUI. If not provided, defaults to the value field.
+      value:
+        type: string
+        description: The command fragment to insert when this node is selected. Defaults to empty string if not provided.
+      immediate:
+        type: boolean
+        default: false
+        description: Execute command immediately without waiting for Enter key
+      fleeting:
+        type: boolean
+        default: false
+        description: When backspace is pressed, continue popping nodes until reaching a non-fleeting node. Useful for grouping related command fragments that should be removed together. Automatically set to true for nodes with choices or input.
+      anchor:
+        type: boolean
+        default: false
+        description: Marks a reset point in the command tree, clearing previous command fragments
+      loop:
+        type: boolean
+        default: false
+        description: Allows repeated selection of child keys (e.g., for flags like 'ls -l -a -R')
+      repeatable:
+        type: boolean
+        default: false
+        description: Allows the same key to be selected multiple times within a loop context
       keys:
         type: array
         items:
           $ref: "#/definitions/Node"
+        description: Child nodes for further selection. Cannot be used with choices or input.
+      choices:
+        type: array
+        items:
+          type: string
+        description: List of options to present in a fuzzy-select menu. Cannot be used with keys or input.
+      input:
+        type: string
+        enum:
+          - Text
+          - Number
+        description: Prompt for user input of the specified type. Cannot be used with keys or choices.
+    # Validation: A node must have only one of: keys, choices, or input
+    oneOf:
+      - required: [keys]
+        not:
+          anyOf:
+            - required: [choices]
+            - required: [input]
+      - required: [choices]
+        not:
+          anyOf:
+            - required: [keys]
+            - required: [input]
+      - required: [input]
+        not:
+          anyOf:
+            - required: [keys]
+            - required: [choices]
+      - not:
+          anyOf:
+            - required: [keys]
+            - required: [choices]
+            - required: [input]

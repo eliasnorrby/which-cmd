@@ -23,7 +23,7 @@ The entire command structure is represented as a tree of `Node` objects (src/nod
     - **Input nodes**: Prompt for text/number input via `input` field
   - Special flags:
     - `immediate`: Execute command immediately without waiting for Enter
-    - `fleeting`: Auto-pop from path after selection (used for transient selections)
+    - `fleeting`: When backspace is pressed, continue popping nodes until reaching a non-fleeting node. Useful for grouping related command fragments that should be removed together (e.g., `-H "ContentType: application/json"`)
     - `anchor`: Marks a reset point in the command tree
     - `loop`: Allows repeated selection of child keys (e.g., `ls -l -a -R`)
     - `repeatable`: Allows the same key to be selected multiple times in a loop
