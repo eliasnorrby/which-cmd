@@ -55,8 +55,6 @@ configured to recognize this flag."
     },
     /// Troubleshoot configuration
     Doctor,
-    /// Get height of TUI, useful for integrations
-    Height,
 }
 
 fn main() {
@@ -72,10 +70,6 @@ fn main() {
         Commands::Integration { shell } => commands::integration_command(shell),
         Commands::Doctor => {
             commands::doctor_command();
-            Ok(())
-        }
-        Commands::Height => {
-            commands::height_command();
             Ok(())
         }
     };
