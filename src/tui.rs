@@ -287,8 +287,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                         };
 
                         let text_options = format_search_options(&options);
-                        let mut fuzzy_select =
-                            FuzzySelect::new(&text_options).with_prompt("Search:");
+                        let mut fuzzy_select = FuzzySelect::new(&text_options).with_prompt(" :");
                         if let Some(selection) = fuzzy_select.interact(&mut terminal)? {
                             let selected_node = &options[selection];
 

@@ -24,7 +24,7 @@ impl<'a> FuzzySelect<'a> {
     pub fn new(items: &'a [String]) -> Self {
         FuzzySelect {
             items,
-            prompt: "Search:".to_string(),
+            prompt: " :".to_string(),
         }
     }
 
@@ -152,7 +152,7 @@ impl<'a> FuzzySelect<'a> {
         terminal.clear_screen()?;
 
         // Line 2: Prompt and query
-        terminal.write_line(&format!("{} {}", self.prompt.clone().cyan(), query))?;
+        terminal.write_line(&format!("{} {}", self.prompt.clone().yellow(), query))?;
 
         // Line 3: Empty padding
         terminal.empty_border_line()?;
@@ -173,7 +173,7 @@ impl<'a> FuzzySelect<'a> {
             if i < matched_items.len() {
                 let item = &matched_items[i];
                 let display = if i == selected_index {
-                    format!("{} {}", ">".green(), item.text.clone())
+                    format!("{} {}", ">".yellow(), item.text.clone())
                 } else {
                     format!("  {}", item.text)
                 };
