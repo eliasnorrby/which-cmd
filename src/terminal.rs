@@ -32,6 +32,10 @@ impl<W: Write> Terminal<W> {
         self.border = enabled;
     }
 
+    pub fn has_border(&self) -> bool {
+        self.border
+    }
+
     pub fn setup(&mut self) -> Result<()> {
         // Save the current cursor position
         let pos = cursor::position().map_err(|e| {
@@ -329,6 +333,17 @@ impl<W: Write> Terminal<W> {
             .execute(cursor::Hide)
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to hide cursor: {}", e)))?;
         Ok(())
+    }
+
+    pub fn move_cursor_to(&mut self, col: u16, row: u16) -> Result<()> {
+        self.writer
+            .execute(cursor::MoveTo(col, row))
+            .map_err(|e| WhichCmdError::Terminal(format!("Failed to move cursor: {}", e)))?;
+        Ok(())
+    }
+
+    pub fn get_start_row(&self) -> u16 {
+        self.start_row
     }
 
     /// Replaces the last line with an error message on the left and centered help text.

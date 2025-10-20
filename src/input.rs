@@ -105,6 +105,18 @@ impl<'a> Input<'a> {
         terminal.draw_bottom_border()?;
         terminal.flush()?;
 
+        // Position cursor after the input text
+        // Row: start_row + 1 (line with prompt/input, accounting for top border)
+        // Col: border (2 chars "│ ") + prompt length + input length
+        let row = terminal.get_start_row() + if terminal.has_border() { 1 } else { 0 };
+        let prompt_len = console::measure_text_width(&self.prompt);
+        let input_len = console::measure_text_width(input);
+        let col = if terminal.has_border() { 1 } else { 0 }
+            + prompt_len as u16
+            + 1 // for the space after prompt
+            + input_len as u16;
+        terminal.move_cursor_to(col, row)?;
+
         Ok(())
     }
 }

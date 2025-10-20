@@ -39,6 +39,9 @@ impl<'a> FuzzySelect<'a> {
         let mut cursor_pos = 0usize;
         let mut selected_index = 0usize;
 
+        // Show cursor at the start
+        terminal.show_cursor()?;
+
         loop {
             // Filter and sort items based on current query
             let matched_items = self.filter_items(&query);
@@ -57,9 +60,11 @@ impl<'a> FuzzySelect<'a> {
             })? {
                 match code {
                     KeyCode::Esc => {
+                        terminal.hide_cursor()?;
                         return Ok(None);
                     }
                     KeyCode::Enter => {
+                        terminal.hide_cursor()?;
                         if matched_items.is_empty() {
                             return Ok(None);
                         }
@@ -179,6 +184,18 @@ impl<'a> FuzzySelect<'a> {
         terminal.draw_bottom_border()?;
 
         terminal.flush()?;
+
+        // Position cursor after the query text
+        // Row: start_row + 1 (accounting for top border if present)
+        // Col: border (2 chars "│ ") + prompt length + space + query length
+        let row = terminal.get_start_row() + if terminal.has_border() { 1 } else { 0 }; // Line 2 (0-indexed, so +1 from start)
+        let prompt_len = console::measure_text_width(&self.prompt);
+        let query_len = console::measure_text_width(query);
+        let col = if terminal.has_border() { 2 } else { 1 }
+            + prompt_len as u16
+            + 1 // for the space after prompt
+            + query_len as u16;
+        terminal.move_cursor_to(col, row)?;
 
         Ok(())
     }
