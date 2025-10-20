@@ -7,10 +7,11 @@ use crate::tui;
 
 use crate::constants::*;
 
-pub fn build_command(immediate: bool, border: bool) -> Result<()> {
+pub fn build_command(immediate: bool, border: bool, height: usize) -> Result<()> {
     let opts = Options {
         print_immediate_tag: immediate,
         border,
+        height,
     };
 
     let config = Config::from_file()?;

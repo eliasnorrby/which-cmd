@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::constants::{help_text, ERROR_DISPLAY_DURATION_MS, IMMEDIATE_PREFIX, NUMBER_OF_ROWS};
+use crate::constants::{help_text, ERROR_DISPLAY_DURATION_MS, IMMEDIATE_PREFIX};
 use crate::error::{Result, WhichCmdError};
 use crate::fuzzy_select::FuzzySelect;
 use crate::input::Input;
@@ -161,7 +161,11 @@ fn render<W: std::io::Write>(
     }
 
     // Arrange nodes into rows
-    let num_rows = NUMBER_OF_ROWS;
+    // Main TUI layout: 4 header lines + N table rows + 2 footer lines
+    let content_rows = terminal.get_content_rows();
+    let header_lines = 4;
+    let footer_lines = 2;
+    let num_rows = content_rows.saturating_sub(header_lines + footer_lines);
     let mut rows: Vec<Vec<String>> = vec![Vec::new(); num_rows];
 
     for (i, node) in nodes.iter().enumerate() {
@@ -209,7 +213,7 @@ fn render<W: std::io::Write>(
 
 pub fn run_tui(config: Config, opts: Options) -> Result<String> {
     // Initialize terminal
-    let mut terminal = Terminal::new(std::io::stdout());
+    let mut terminal = Terminal::new(std::io::stdout(), opts.height);
 
     terminal.set_border(opts.border);
     terminal.setup()?;

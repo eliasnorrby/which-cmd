@@ -13,6 +13,7 @@ mod tui;
 mod commands;
 
 use commands::integration::Shell;
+use constants::DEFAULT_HEIGHT;
 
 use clap::{command, Parser, Subcommand};
 
@@ -41,6 +42,9 @@ configured to recognize this flag."
         /// Draw a border around the TUI using box-drawing characters
         #[clap(long, short)]
         border: bool,
+        /// Height of the TUI content area (borders are added automatically if enabled)
+        #[clap(long, default_value_t = DEFAULT_HEIGHT)]
+        height: usize,
     },
     /// Get a previously built command
     Get,
@@ -59,7 +63,11 @@ fn main() {
     let args = Args::parse();
 
     let result = match args.cmd {
-        Commands::Build { immediate, border } => commands::build_command(immediate, border),
+        Commands::Build {
+            immediate,
+            border,
+            height,
+        } => commands::build_command(immediate, border, height),
         Commands::Get => commands::get_command(),
         Commands::Integration { shell } => commands::integration_command(shell),
         Commands::Doctor => {

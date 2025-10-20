@@ -12,19 +12,21 @@ use std::io::Write;
 pub struct Terminal<W: Write> {
     writer: W,
     start_row: u16,
-    tui_height: u16,
+    total_height: u16,
     border: bool,
     terminal_width: u16,
+    content_rows: usize,
 }
 
 impl<W: Write> Terminal<W> {
-    pub fn new(writer: W) -> Self {
+    pub fn new(writer: W, content_height: usize) -> Self {
         Terminal {
             writer,
             start_row: 0,
-            tui_height: 0,
+            total_height: 0, // Will be calculated in setup() after border is set
             border: false,
             terminal_width: 0,
+            content_rows: content_height,
         }
     }
 
@@ -43,27 +45,36 @@ impl<W: Write> Terminal<W> {
         })?;
         self.start_row = pos.1;
 
-        // Calculate TUI height using the centralized function
-        // If border is enabled, add 2 lines for top and bottom borders
-        self.tui_height =
-            crate::constants::calculate_tui_height() as u16 + if self.border { 2 } else { 0 };
-
-        // Ensure we have enough space below the cursor
-        // If not, move down to create space
-        let (cols, rows) = terminal::size()
+        // Get terminal size for validation
+        let (cols, available_rows) = terminal::size()
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to get terminal size: {}", e)))?;
 
         self.terminal_width = cols;
 
-        if self.start_row + self.tui_height > rows {
+        // Calculate total_height: content_rows + borders (if enabled)
+        // The height parameter specifies content area only; borders are added on top
+        let border_rows = if self.border { 2 } else { 0 };
+        self.total_height = (self.content_rows + border_rows) as u16;
+
+        // Validate that total_height doesn't exceed available screen space
+        if self.total_height > available_rows {
+            return Err(WhichCmdError::Terminal(format!(
+                "Requested content height {} (total {} with borders) exceeds available terminal height {}",
+                self.content_rows, self.total_height, available_rows
+            )));
+        }
+
+        // Ensure we have enough space below the cursor
+        // If not, move down to create space
+        if self.start_row + self.total_height > available_rows {
             // We need to scroll down to make room
-            let lines_needed = self.start_row + self.tui_height - rows;
+            let lines_needed = self.start_row + self.total_height - available_rows;
             for _ in 0..lines_needed {
                 self.writer.write_all(b"\r\n").map_err(|e| {
                     WhichCmdError::Terminal(format!("Failed to write newline: {}", e))
                 })?;
             }
-            self.start_row = rows.saturating_sub(self.tui_height);
+            self.start_row = available_rows.saturating_sub(self.total_height);
         }
 
         terminal::enable_raw_mode()
@@ -90,6 +101,10 @@ impl<W: Write> Terminal<W> {
         terminal::disable_raw_mode()
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to disable raw mode: {}", e)))?;
         Ok(())
+    }
+
+    pub fn get_content_rows(&self) -> usize {
+        self.content_rows
     }
 
     pub fn clear_screen(&mut self) -> Result<()> {
@@ -351,12 +366,12 @@ impl<W: Write> Terminal<W> {
     /// The help text stays in the same centered position regardless of the error message.
     pub fn replace_last_line(&mut self, error_msg: &str, help_text: &str) -> Result<()> {
         // Calculate the row position of the last line
-        // If border is enabled: start_row + tui_height - 2 (one line before bottom border)
-        // If no border: start_row + tui_height - 1
+        // If border is enabled: start_row + total_height - 2 (one line before bottom border)
+        // If no border: start_row + total_height - 1
         let last_line_row = if self.border {
-            self.start_row + self.tui_height - 2
+            self.start_row + self.total_height - 2
         } else {
-            self.start_row + self.tui_height - 1
+            self.start_row + self.total_height - 1
         };
 
         // Move cursor to the start of the last line

@@ -89,14 +89,21 @@ impl<'a> Input<'a> {
         // Display prompt and input
         terminal.write_line(&format!("{}{}", self.prompt.clone().cyan(), input))?;
 
-        // Fill remaining space
-        terminal.empty_border_line()?;
-        terminal.empty_border_line()?;
-        terminal.empty_border_line()?;
-        terminal.empty_border_line()?;
-        terminal.empty_border_line()?;
-        terminal.empty_border_line()?;
-        terminal.empty_border_line()?;
+        // Fill remaining space dynamically based on terminal content rows
+        // Input view layout:
+        // - 1 line: prompt + input (already written above)
+        // - N lines: empty filler space
+        // - 1 line: empty line before footer
+        // - 1 line: footer with help text
+        let content_rows = terminal.get_content_rows();
+        let prompt_lines = 1;
+        let footer_lines = 2; // empty + help text
+        let filler_lines = content_rows.saturating_sub(prompt_lines + footer_lines);
+
+        // Fill the filler area
+        for _ in 0..filler_lines {
+            terminal.empty_border_line()?;
+        }
 
         // Footer
         terminal.empty_border_line()?;

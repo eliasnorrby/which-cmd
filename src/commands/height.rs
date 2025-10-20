@@ -1,5 +1,7 @@
-use crate::constants::calculate_tui_height;
+use crate::options::Options;
 
 pub fn height_command() {
-    println!("{}", calculate_tui_height())
+    // Return the default TUI height for shell integrations
+    let default_opts = Options::default();
+    println!("{}", default_opts.height)
 }

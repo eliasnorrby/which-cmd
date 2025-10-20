@@ -133,14 +133,14 @@ impl<'a> FuzzySelect<'a> {
     }
 
     /// Render the fuzzy select interface
-    /// Layout (12 lines total when border enabled):
-    /// 1. Top border (╭─╮)
+    /// Layout dynamically sized based on terminal rows setting:
+    /// 1. Top border (if enabled)
     /// 2. Prompt line (Search: query)
     /// 3. Empty padding
-    ///    4-9. Items (6 items)
-    /// 10. Empty padding
-    /// 11. Footer (esc to cancel)
-    /// 12. Bottom border (╰─╯)
+    ///    4-N. Items (rows from terminal setting)
+    ///    N+1. Empty padding
+    ///    N+2. Footer (esc to cancel)
+    ///    N+3. Bottom border (if enabled)
     fn render<W: Write>(
         &self,
         terminal: &mut Terminal<W>,
@@ -157,8 +157,18 @@ impl<'a> FuzzySelect<'a> {
         // Line 3: Empty padding
         terminal.empty_border_line()?;
 
-        // Lines 4-9: Items (6 items)
-        let num_items = 6;
+        // Lines 4-N: Items
+        // Fuzzy select layout:
+        // - 1 line: prompt + query
+        // - 1 line: empty padding before items
+        // - N lines: items
+        // - 1 line: empty padding after items
+        // - 1 line: footer
+        let content_rows = terminal.get_content_rows();
+        let prompt_and_header_lines = 2; // prompt + padding
+        let footer_lines = 2; // padding + help text
+        let num_items = content_rows.saturating_sub(prompt_and_header_lines + footer_lines);
+
         for i in 0..num_items {
             if i < matched_items.len() {
                 let item = &matched_items[i];
@@ -174,13 +184,13 @@ impl<'a> FuzzySelect<'a> {
             }
         }
 
-        // Line 10: Empty padding
+        // Empty padding
         terminal.empty_border_line()?;
 
-        // Line 11: Footer
+        // Footer
         terminal.write_centered(&format!("󱊷  {}", "cancel".dark_grey()))?;
 
-        // Line 12: Bottom border
+        // Bottom border
         terminal.draw_bottom_border()?;
 
         terminal.flush()?;
