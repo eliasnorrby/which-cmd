@@ -45,6 +45,9 @@ configured to recognize this flag."
         /// Height of the TUI content area (borders are added automatically if enabled)
         #[clap(long, default_value_t = DEFAULT_HEIGHT)]
         height: usize,
+        /// Execute the built command instead of printing to stdout
+        #[clap(long, short)]
+        exec: bool,
     },
     /// Get a previously built command
     Get,
@@ -65,7 +68,8 @@ fn main() {
             immediate,
             border,
             height,
-        } => commands::build_command(immediate, border, height),
+            exec,
+        } => commands::build_command(immediate, border, height, exec),
         Commands::Get => commands::get_command(),
         Commands::Integration { shell } => commands::integration_command(shell),
         Commands::Doctor => {
