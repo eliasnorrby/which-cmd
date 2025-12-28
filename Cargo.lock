@@ -555,6 +555,7 @@ dependencies = [
  "console",
  "crossterm",
  "fuzzy-matcher",
+ "libc",
  "serde",
  "serde_yaml",
  "thiserror",

@@ -1,6 +1,7 @@
 use std::fs;
+use std::os::unix::process::CommandExt;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use crate::config::Config;
 use crate::error::Result;
@@ -30,9 +31,22 @@ pub fn build_command(
 
     if exec {
         if !command.is_empty() {
-            let status = Command::new("sh").arg("-c").arg(&command).status()?;
-
-            std::process::exit(status.code().unwrap_or(1));
+            // SAFETY: setsid() is async-signal-safe and appropriate in pre_exec.
+            // It creates a new session, detaching from the parent's process group
+            // so the child survives after the parent exits.
+            unsafe {
+                Command::new("sh")
+                    .arg("-c")
+                    .arg(&command)
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .pre_exec(|| {
+                        libc::setsid();
+                        Ok(())
+                    })
+                    .spawn()?;
+            }
         }
     } else {
         let xdg_dirs = xdg::BaseDirectories::with_prefix(PREFIX)?;
