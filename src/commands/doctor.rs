@@ -1,7 +1,14 @@
+use std::path::Path;
+
 use crate::{config::Config, search::get_search_options};
 
-pub fn doctor_command() {
-    let config = match Config::from_file() {
+pub fn doctor_command(config_path: Option<&Path>) {
+    let config = match config_path {
+        Some(path) => Config::from_path(path),
+        None => Config::from_file(),
+    };
+
+    let config = match config {
         Ok(cfg) => cfg,
         Err(e) => {
             eprintln!("Error loading configuration: {}", e);

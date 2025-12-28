@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use std::fs;
+use std::path::Path;
 use std::rc::Rc;
 
 use crate::constants::*;
@@ -30,7 +31,11 @@ impl Config {
             }
         })?;
 
-        let contents = fs::read_to_string(config_path)?;
+        Config::from_path(&config_path)
+    }
+
+    pub fn from_path(path: &Path) -> Result<Self> {
+        let contents = fs::read_to_string(path)?;
 
         Config::from_contents(&contents)
     }

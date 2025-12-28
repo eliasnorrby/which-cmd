@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::Path;
 use std::process::Command;
 
 use crate::config::Config;
@@ -8,14 +9,23 @@ use crate::tui;
 
 use crate::constants::*;
 
-pub fn build_command(immediate: bool, border: bool, height: usize, exec: bool) -> Result<()> {
+pub fn build_command(
+    config_path: Option<&Path>,
+    immediate: bool,
+    border: bool,
+    height: usize,
+    exec: bool,
+) -> Result<()> {
     let opts = Options {
         print_immediate_tag: immediate,
         border,
         height,
     };
 
-    let config = Config::from_file()?;
+    let config = match config_path {
+        Some(path) => Config::from_path(path)?,
+        None => Config::from_file()?,
+    };
     let command = tui::run_tui(config, opts)?;
 
     if exec {

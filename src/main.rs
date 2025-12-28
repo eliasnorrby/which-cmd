@@ -12,6 +12,8 @@ mod tui;
 
 mod commands;
 
+use std::path::PathBuf;
+
 use commands::integration::Shell;
 use constants::DEFAULT_HEIGHT;
 
@@ -21,6 +23,10 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
+    /// Path to configuration file (defaults to $XDG_CONFIG_HOME/which-cmd/commands.yml)
+    #[clap(long, short, global = true)]
+    config: Option<PathBuf>,
+
     #[command(subcommand)]
     cmd: Commands,
 }
@@ -69,11 +75,11 @@ fn main() {
             border,
             height,
             exec,
-        } => commands::build_command(immediate, border, height, exec),
+        } => commands::build_command(args.config.as_deref(), immediate, border, height, exec),
         Commands::Get => commands::get_command(),
         Commands::Integration { shell } => commands::integration_command(shell),
         Commands::Doctor => {
-            commands::doctor_command();
+            commands::doctor_command(args.config.as_deref());
             Ok(())
         }
     };
