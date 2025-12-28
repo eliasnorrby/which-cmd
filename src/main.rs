@@ -15,7 +15,7 @@ mod commands;
 use commands::integration::Shell;
 use constants::DEFAULT_HEIGHT;
 
-use clap::{command, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 
 /// A command builder tool – which-key for the command line
 #[derive(Parser)]
