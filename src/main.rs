@@ -41,7 +41,7 @@ enum Commands {
             short,
             long_help = "When enabled, will prefix the output with a '__IMMEDIATE__'
 flag to indicate that the command should be executed. Whatever
-integration is set up to handle the output of which-cmd must be
+integration is set up to handle the output of wcmd must be
 configured to recognize this flag."
         )]
         immediate: bool,

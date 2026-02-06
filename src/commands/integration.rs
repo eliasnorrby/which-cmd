@@ -20,9 +20,9 @@ which_cmd_widget() {{
     # The <$TTY part ensures that which-cmd reads input from the terminal ($TTY) rather than from
     #   the shell's standard input, which may not be connected to the terminal when running in a
     #   ZLE widget.
-    <$TTY which-cmd build --border --immediate
+    <$TTY wcmd build --border --immediate
     if [[ $? -eq 0 ]]; then
-        result=$(which-cmd get)
+        result=$(wcmd get)
         if [[ $result != "" ]]; then
           if [[ $result = __IMMEDIATE__* ]]; then
             local cmd
@@ -48,8 +48,8 @@ bindkey '^P' which_cmd_widget
 which_cmd_tmux_widget() {{
   if [[ $LBUFFER == "" ]]; then
     local result height=10
-    tmux display-popup -S fg=brightblack -T '#[fg=white bold] which-cmd #[fg=default]' -y P -w 95% -h $((height + 2)) -b rounded -E "which-cmd build --height ${{height}} --border --immediate"
-    result=$(which-cmd get)
+    tmux display-popup -S fg=brightblack -T '#[fg=white bold] which-cmd #[fg=default]' -y P -w 95% -h $((height + 2)) -b rounded -E "wcmd build --height ${{height}} --border --immediate"
+    result=$(wcmd get)
     if [[ $result != "" ]]; then
       if [[ $result = __IMMEDIATE__* ]]; then
         local cmd
@@ -78,8 +78,8 @@ bindkey ' ' which_cmd_tmux_widget
 which_cmd_tmux_widget() {{
   if [[ "$READLINE_LINE" == "" ]]; then
     local result height=10
-    tmux display-popup -S fg=brightblack -T '#[fg=white bold] which-cmd #[fg=default]' -y P -w 95% -h $((height + 2)) -b rounded -E "which-cmd build --height ${{height}} --border --immediate"
-    result=$(which-cmd get)
+    tmux display-popup -S fg=brightblack -T '#[fg=white bold] which-cmd #[fg=default]' -y P -w 95% -h $((height + 2)) -b rounded -E "wcmd build --height ${{height}} --border --immediate"
+    result=$(wcmd get)
     if [[ "$result" != "" ]]; then
       if [[ "$result" = __IMMEDIATE__* ]]; then
         local cmd
