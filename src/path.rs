@@ -21,7 +21,9 @@ pub fn compose_command(path: &[Rc<Node>]) -> String {
         }
     }
     for node in &path[start_index..] {
-        command_parts.push(node.value.as_str());
+        if !node.value.is_empty() {
+            command_parts.push(node.value.as_str());
+        }
     }
     command_parts.join(" ")
 }
@@ -108,7 +110,7 @@ mod tests {
         });
         let path = vec![node1, node2];
         let command = compose_command(&path);
-        assert_eq!(command, "git ");
+        assert_eq!(command, "git");
     }
 
     #[test]
