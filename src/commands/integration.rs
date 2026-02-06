@@ -48,7 +48,7 @@ bindkey '^P' which_cmd_widget
 which_cmd_tmux_widget() {{
   if [[ $LBUFFER == "" ]]; then
     local result height=10
-    tmux display-popup -S fg=brightblack -T '#[fg=white bold] which-cmd #[fg=default]' -y P -w 95% -h $((height + 2)) -b rounded -E "wcmd build --height ${{height}} --border --immediate"
+    tmux display-popup -d '#{{pane_current_path}}' -S fg=brightblack -T '#[fg=white bold] which-cmd #[fg=default]' -y P -w 95% -h $((height + 2)) -b rounded -E "wcmd build --height ${{height}} --border --immediate"
     result=$(wcmd get)
     if [[ $result != "" ]]; then
       if [[ $result = __IMMEDIATE__* ]]; then
@@ -78,7 +78,7 @@ bindkey ' ' which_cmd_tmux_widget
 which_cmd_tmux_widget() {{
   if [[ "$READLINE_LINE" == "" ]]; then
     local result height=10
-    tmux display-popup -S fg=brightblack -T '#[fg=white bold] which-cmd #[fg=default]' -y P -w 95% -h $((height + 2)) -b rounded -E "wcmd build --height ${{height}} --border --immediate"
+    tmux display-popup -d '#{{pane_current_path}}' -S fg=brightblack -T '#[fg=white bold] which-cmd #[fg=default]' -y P -w 95% -h $((height + 2)) -b rounded -E "wcmd build --height ${{height}} --border --immediate"
     result=$(wcmd get)
     if [[ "$result" != "" ]]; then
       if [[ "$result" = __IMMEDIATE__* ]]; then
