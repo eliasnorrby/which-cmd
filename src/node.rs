@@ -128,6 +128,24 @@ impl<'de> Deserialize<'de> for Node {
 }
 
 impl Node {
+    pub fn new_branch(key: String, name: String, value: String, children: Vec<Node>) -> Self {
+        Node {
+            id: String::new(),
+            key,
+            name,
+            value,
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            is_repeatable: false,
+            keys: children.into_iter().map(Rc::new).collect(),
+            choices: vec![],
+            input_type: None,
+            when: None,
+        }
+    }
+
     pub fn is_leaf(&self) -> bool {
         self.keys.is_empty() && !self.has_choices() && self.input_type.is_none()
     }

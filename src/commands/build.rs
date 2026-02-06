@@ -26,7 +26,8 @@ pub fn build_command(
     let config = match config_path {
         Some(path) => Config::from_path(path)?,
         None => Config::from_file()?,
-    };
+    }
+    .with_local_config()?;
     let command = tui::run_tui(config, opts)?;
 
     if exec {

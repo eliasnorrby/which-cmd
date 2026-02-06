@@ -10,3 +10,9 @@ pub const DEFAULT_HEIGHT: usize = 10;
 
 /// Duration to display error messages in the TUI (milliseconds)
 pub const ERROR_DISPLAY_DURATION_MS: u64 = 750;
+
+/// File names to search for local project configuration (first match wins)
+pub const LOCAL_CONFIG_FILE_NAMES: &[&str] = &[".wcmdrc.yml", ".wcmdrc.yaml", ".wcmdrc"];
+
+/// Key used for the synthetic local config node
+pub const LOCAL_CONFIG_KEY: &str = ".";
