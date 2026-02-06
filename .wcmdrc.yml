@@ -1,0 +1,4 @@
+keys:
+  - key: b
+    name: build
+    value: cargo build
