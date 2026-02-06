@@ -296,6 +296,37 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                                 rebuild_path_from_id(&selected_node.id, &config.keys);
                             path = new_path;
                             loop_node_index = new_loop_index;
+
+                            // Trigger input/choice interactions for the last node
+                            if let Some(last_node) = path.last().cloned() {
+                                if last_node.has_choices() {
+                                    let mut choice_select =
+                                        FuzzySelect::new(&last_node.choices)
+                                            .with_prompt("Choose an option:");
+                                    let choice = choice_select.interact(&mut terminal)?;
+                                    if let Some(choice_idx) = choice {
+                                        if let Some(chosen) =
+                                            last_node.with_selection(choice_idx)
+                                        {
+                                            path.push(chosen);
+                                        } else {
+                                            pop_to_first_non_is_fleeting(&mut path);
+                                        }
+                                    } else {
+                                        pop_to_first_non_is_fleeting(&mut path);
+                                    }
+                                } else if let Some(input_type) = &last_node.input_type {
+                                    let input_component =
+                                        Input::new(input_type, &last_node.name);
+                                    if let Some(input) =
+                                        input_component.interact(&mut terminal)?
+                                    {
+                                        path.push(last_node.with_input(&input));
+                                    } else {
+                                        pop_to_first_non_is_fleeting(&mut path);
+                                    }
+                                }
+                            }
                         } else {
                             pop_to_first_non_is_fleeting(&mut path);
                         }
