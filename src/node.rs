@@ -17,6 +17,7 @@ pub struct Node {
     pub keys: Vec<Rc<Node>>,
     pub choices: Vec<String>,
     pub input_type: Option<InputType>,
+    pub choices_command: Option<String>,
     pub when: Option<Condition>,
 }
 
@@ -81,6 +82,7 @@ impl<'de> Deserialize<'de> for Node {
             #[serde(default)]
             choices: Vec<String>,
             input: Option<InputType>,
+            choices_command: Option<String>,
             when: Option<Condition>,
         }
 
@@ -96,6 +98,7 @@ impl<'de> Deserialize<'de> for Node {
             !helper.choices.is_empty(),
             helper.input.is_some(),
             !helper.keys.is_empty(),
+            helper.choices_command.is_some(),
         ]
         .iter()
         .filter(|&&x| x)
@@ -103,7 +106,7 @@ impl<'de> Deserialize<'de> for Node {
             > 1
         {
             return Err(serde::de::Error::custom(format!(
-                "node must have only one of choices, input, or keys: {}",
+                "node must have only one of choices, input, keys, or choices_command: {}",
                 name
             )));
         }
@@ -115,13 +118,17 @@ impl<'de> Deserialize<'de> for Node {
             name,
             value,
             is_immediate: helper.immediate,
-            is_fleeting: helper.fleeting || helper.input.is_some() || !helper.choices.is_empty(),
+            is_fleeting: helper.fleeting
+                || helper.input.is_some()
+                || !helper.choices.is_empty()
+                || helper.choices_command.is_some(),
             is_anchor: helper.anchor,
             is_loop: helper.r#loop,
             is_repeatable: helper.repeatable,
             keys: helper.keys.into_iter().map(Rc::new).collect(),
             choices: helper.choices,
             input_type: helper.input,
+            choices_command: helper.choices_command,
             when: helper.when,
         })
     }
@@ -142,12 +149,16 @@ impl Node {
             keys: children.into_iter().map(Rc::new).collect(),
             choices: vec![],
             input_type: None,
+            choices_command: None,
             when: None,
         }
     }
 
     pub fn is_leaf(&self) -> bool {
-        self.keys.is_empty() && !self.has_choices() && self.input_type.is_none()
+        self.keys.is_empty()
+            && !self.has_choices()
+            && self.input_type.is_none()
+            && self.choices_command.is_none()
     }
 
     pub fn has_choices(&self) -> bool {
@@ -183,6 +194,7 @@ impl Node {
             keys: vec![],
             choices: vec![],
             input_type: None,
+            choices_command: None,
             when: None,
         }))
     }
@@ -202,6 +214,27 @@ impl Node {
             keys: vec![],
             choices: vec![],
             input_type: None,
+            choices_command: None,
+            when: None,
+        })
+    }
+
+    #[must_use]
+    pub fn with_dynamic_selection(&self, choice: &str) -> Rc<Node> {
+        Rc::new(Node {
+            id: Node::id_from_parent(&self.id, CHOICE_KEY),
+            key: CHOICE_KEY.to_string(),
+            name: choice.to_string(),
+            value: choice.to_string(),
+            is_immediate: false,
+            is_fleeting: false,
+            is_anchor: false,
+            is_loop: false,
+            is_repeatable: false,
+            keys: vec![],
+            choices: vec![],
+            input_type: None,
+            choices_command: None,
             when: None,
         })
     }
@@ -225,6 +258,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
             input_type: None,
+            choices_command: None,
             when: None,
         })
     }
@@ -251,6 +285,7 @@ mod tests {
             keys: vec![child],
             choices: vec![],
             input_type: None,
+            choices_command: None,
             when: None,
         });
         assert!(!node.is_leaf());
@@ -271,6 +306,7 @@ mod tests {
             keys: vec![],
             choices: vec!["option1".to_string(), "option2".to_string()],
             input_type: None,
+            choices_command: None,
             when: None,
         });
         assert!(!node.is_leaf());
@@ -291,6 +327,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
             input_type: Some(InputType::Text),
+            choices_command: None,
             when: None,
         });
         assert!(!node.is_leaf());
@@ -311,6 +348,7 @@ mod tests {
             keys: vec![],
             choices: vec!["option1".to_string()],
             input_type: None,
+            choices_command: None,
             when: None,
         });
         assert!(node.has_choices());
@@ -349,6 +387,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
             input_type: None,
+            choices_command: None,
             when: None,
         });
         // Can't mutate inside Rc, so we'll use Rc::make_mut to get mutable reference
@@ -372,6 +411,7 @@ mod tests {
             keys: vec![],
             choices: vec!["branch".to_string(), "commit".to_string()],
             input_type: None,
+            choices_command: None,
             when: None,
         });
 
@@ -400,6 +440,7 @@ mod tests {
             keys: vec![],
             choices: vec!["branch".to_string()],
             input_type: None,
+            choices_command: None,
             when: None,
         });
 
@@ -494,5 +535,71 @@ value: git
 "#;
         let node: Node = serde_yaml::from_str(yaml).unwrap();
         assert!(node.when.is_none());
+    }
+
+    #[test]
+    fn test_choices_command_deserialization() {
+        let yaml = r#"
+key: b
+value: branch
+choices_command: "git branch --format='%(refname:short)'"
+"#;
+        let node: Node = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(
+            node.choices_command.as_deref(),
+            Some("git branch --format='%(refname:short)'")
+        );
+        assert!(!node.is_leaf());
+        assert!(node.is_fleeting);
+    }
+
+    #[test]
+    #[should_panic(expected = "must have only one of")]
+    fn test_choices_command_mutual_exclusivity_with_keys() {
+        let yaml = r#"
+key: b
+value: branch
+choices_command: "echo foo"
+keys:
+  - key: x
+    value: xval
+"#;
+        let _: Node = serde_yaml::from_str(yaml).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "must have only one of")]
+    fn test_choices_command_mutual_exclusivity_with_choices() {
+        let yaml = r#"
+key: b
+value: branch
+choices_command: "echo foo"
+choices:
+  - foo
+"#;
+        let _: Node = serde_yaml::from_str(yaml).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "must have only one of")]
+    fn test_choices_command_mutual_exclusivity_with_input() {
+        let yaml = r#"
+key: b
+value: branch
+choices_command: "echo foo"
+input: Text
+"#;
+        let _: Node = serde_yaml::from_str(yaml).unwrap();
+    }
+
+    #[test]
+    fn test_with_dynamic_selection() {
+        let node = create_test_node("g", "g", "git", "git");
+        let selected = node.with_dynamic_selection("my-branch");
+
+        assert_eq!(selected.key, CHOICE_KEY);
+        assert_eq!(selected.name, "my-branch");
+        assert_eq!(selected.value, "my-branch");
+        assert_eq!(selected.id, format!("g{}", CHOICE_KEY));
     }
 }

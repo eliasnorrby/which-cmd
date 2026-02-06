@@ -238,6 +238,32 @@ fn render<W: std::io::Write>(
     Ok(())
 }
 
+fn execute_choices_command(command: &str) -> std::result::Result<Vec<String>, String> {
+    let output = std::process::Command::new("sh")
+        .arg("-c")
+        .arg(command)
+        .output()
+        .map_err(|e| format!("Failed to execute command: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Command failed: {}", stderr.trim()));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let choices: Vec<String> = stdout
+        .lines()
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty())
+        .collect();
+
+    if choices.is_empty() {
+        return Err("Command produced no output".to_string());
+    }
+
+    Ok(choices)
+}
+
 pub fn run_tui(config: Config, opts: Options) -> Result<String> {
     // Initialize terminal
     let mut terminal = Terminal::new(std::io::stdout(), opts.height);
@@ -305,6 +331,30 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                             } else {
                                 pop_to_first_non_is_fleeting(&mut path);
                             }
+                        } else if let Some(cmd) = &node.choices_command {
+                            match execute_choices_command(cmd) {
+                                Ok(choices) => {
+                                    let mut fuzzy_select =
+                                        FuzzySelect::new(&choices).with_prompt("Choose an option:");
+                                    let selection = fuzzy_select.interact(&mut terminal)?;
+                                    if let Some(idx) = selection {
+                                        path.push(node.with_dynamic_selection(&choices[idx]));
+                                    } else {
+                                        pop_to_first_non_is_fleeting(&mut path);
+                                    }
+                                }
+                                Err(err) => {
+                                    pop_to_first_non_is_fleeting(&mut path);
+                                    terminal.replace_last_line(
+                                        &format!("{}", err.red()),
+                                        &footer_text(path.is_empty()),
+                                    )?;
+                                    terminal.flush()?;
+                                    let _ = event::poll(std::time::Duration::from_millis(
+                                        ERROR_DISPLAY_DURATION_MS,
+                                    ));
+                                }
+                            }
                         }
                     } else if c == '/' {
                         // Search
@@ -346,6 +396,32 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                                         path.push(last_node.with_input(&input));
                                     } else {
                                         pop_to_first_non_is_fleeting(&mut path);
+                                    }
+                                } else if let Some(cmd) = &last_node.choices_command {
+                                    match execute_choices_command(cmd) {
+                                        Ok(choices) => {
+                                            let mut fuzzy_select = FuzzySelect::new(&choices)
+                                                .with_prompt("Choose an option:");
+                                            let selection = fuzzy_select.interact(&mut terminal)?;
+                                            if let Some(idx) = selection {
+                                                path.push(
+                                                    last_node.with_dynamic_selection(&choices[idx]),
+                                                );
+                                            } else {
+                                                pop_to_first_non_is_fleeting(&mut path);
+                                            }
+                                        }
+                                        Err(err) => {
+                                            pop_to_first_non_is_fleeting(&mut path);
+                                            terminal.replace_last_line(
+                                                &format!("{}", err.red()),
+                                                &footer_text(path.is_empty()),
+                                            )?;
+                                            terminal.flush()?;
+                                            let _ = event::poll(std::time::Duration::from_millis(
+                                                ERROR_DISPLAY_DURATION_MS,
+                                            ));
+                                        }
                                     }
                                 }
                             }

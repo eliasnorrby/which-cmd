@@ -126,6 +126,7 @@ mod tests {
             keys: children,
             choices: vec![],
             input_type: None,
+            choices_command: None,
             when: None,
         })
     }

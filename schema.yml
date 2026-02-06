@@ -59,6 +59,9 @@ definitions:
           - Text
           - Number
         description: Prompt for user input of the specified type. Cannot be used with keys or choices.
+      choices_command:
+        type: string
+        description: Shell command whose stdout lines become fuzzy-select choices. Cannot be used with keys, choices, or input.
       when:
         type: object
         description: Condition that must be met for this node to be visible
@@ -73,25 +76,35 @@ definitions:
                 type: string
             required: [command_exists]
             additionalProperties: false
-    # Validation: A node must have only one of: keys, choices, or input
+    # Validation: A node must have only one of: keys, choices, input, or choices_command
     oneOf:
       - required: [keys]
         not:
           anyOf:
             - required: [choices]
             - required: [input]
+            - required: [choices_command]
       - required: [choices]
         not:
           anyOf:
             - required: [keys]
             - required: [input]
+            - required: [choices_command]
       - required: [input]
         not:
           anyOf:
             - required: [keys]
             - required: [choices]
+            - required: [choices_command]
+      - required: [choices_command]
+        not:
+          anyOf:
+            - required: [keys]
+            - required: [choices]
+            - required: [input]
       - not:
           anyOf:
             - required: [keys]
             - required: [choices]
             - required: [input]
+            - required: [choices_command]
