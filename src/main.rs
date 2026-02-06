@@ -8,6 +8,7 @@ mod options;
 mod path;
 mod search;
 mod terminal;
+mod text;
 mod tui;
 
 mod commands;

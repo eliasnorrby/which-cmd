@@ -1,7 +1,8 @@
 use crate::error::Result;
 use crate::terminal::Terminal;
+use crate::text::delete_word_back;
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent},
+    event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
     style::Stylize,
 };
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -55,7 +56,9 @@ impl<'a> FuzzySelect<'a> {
             self.render(terminal, &query, &matched_items, selected_index)?;
 
             // Wait for input
-            if let Event::Key(KeyEvent { code, .. }) = event::read().map_err(|e| {
+            if let Event::Key(KeyEvent {
+                code, modifiers, ..
+            }) = event::read().map_err(|e| {
                 crate::error::WhichCmdError::Terminal(format!("Failed to read event: {}", e))
             })? {
                 match code {
@@ -69,6 +72,10 @@ impl<'a> FuzzySelect<'a> {
                             return Ok(None);
                         }
                         return Ok(Some(matched_items[selected_index].index));
+                    }
+                    KeyCode::Char('w') if modifiers.contains(KeyModifiers::CONTROL) => {
+                        delete_word_back(&mut query, &mut cursor_pos);
+                        selected_index = 0;
                     }
                     KeyCode::Char(c) => {
                         query.insert(cursor_pos, c);

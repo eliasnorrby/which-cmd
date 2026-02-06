@@ -2,7 +2,7 @@ use crate::error::{Result, WhichCmdError};
 use crate::node::InputType;
 use crate::terminal::Terminal;
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent},
+    event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
     style::Stylize,
 };
 use std::io::Write;
@@ -33,7 +33,9 @@ impl<'a> Input<'a> {
 
         loop {
             // Wait for input
-            if let Event::Key(KeyEvent { code, .. }) = event::read()
+            if let Event::Key(KeyEvent {
+                code, modifiers, ..
+            }) = event::read()
                 .map_err(|e| WhichCmdError::Terminal(format!("Failed to read event: {}", e)))?
             {
                 match code {
@@ -53,6 +55,11 @@ impl<'a> Input<'a> {
                     KeyCode::Esc => {
                         terminal.hide_cursor()?;
                         return Ok(None);
+                    }
+                    KeyCode::Char('w') if modifiers.contains(KeyModifiers::CONTROL) => {
+                        let mut cursor_pos = input_str.len();
+                        crate::text::delete_word_back(&mut input_str, &mut cursor_pos);
+                        self.render(terminal, &input_str)?;
                     }
                     KeyCode::Char(c) => {
                         // Validate input based on type
