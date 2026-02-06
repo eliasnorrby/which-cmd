@@ -59,6 +59,20 @@ definitions:
           - Text
           - Number
         description: Prompt for user input of the specified type. Cannot be used with keys or choices.
+      when:
+        type: object
+        description: Condition that must be met for this node to be visible
+        oneOf:
+          - properties:
+              file_exists:
+                type: string
+            required: [file_exists]
+            additionalProperties: false
+          - properties:
+              command_exists:
+                type: string
+            required: [command_exists]
+            additionalProperties: false
     # Validation: A node must have only one of: keys, choices, or input
     oneOf:
       - required: [keys]

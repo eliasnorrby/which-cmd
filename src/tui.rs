@@ -1,3 +1,4 @@
+use crate::condition::ConditionEvaluator;
 use crate::config::Config;
 use crate::constants::{ERROR_DISPLAY_DURATION_MS, IMMEDIATE_PREFIX};
 use crate::error::{Result, WhichCmdError};
@@ -83,13 +84,25 @@ fn command_indicator(path: &[Rc<Node>]) -> String {
     )
 }
 
+/// Filter out nodes whose `when` condition is not met
+fn filter_by_condition(nodes: Vec<Rc<Node>>, evaluator: &mut ConditionEvaluator) -> Vec<Rc<Node>> {
+    nodes
+        .into_iter()
+        .filter(|n| match &n.when {
+            Some(condition) => evaluator.evaluate(condition),
+            None => true,
+        })
+        .collect()
+}
+
 /// Get the current nodes to display based on path and loop state
 fn get_current_nodes(
     config: &Config,
     path: &[Rc<Node>],
     loop_node_index: Option<usize>,
+    evaluator: &mut ConditionEvaluator,
 ) -> Vec<Rc<Node>> {
-    if let Some(l) = loop_node_index {
+    let nodes = if let Some(l) = loop_node_index {
         if let Some(last_node) = path.last() {
             if last_node.is_leaf() {
                 path[l]
@@ -108,7 +121,8 @@ fn get_current_nodes(
         last_node.keys.clone()
     } else {
         config.keys.clone()
-    }
+    };
+    filter_by_condition(nodes, evaluator)
 }
 
 /// Sort nodes alphabetically (case-insensitive), with lowercase before uppercase
@@ -233,10 +247,11 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
 
     let mut path: Vec<Rc<Node>> = Vec::new();
     let mut loop_node_index: Option<usize> = None;
+    let mut evaluator = ConditionEvaluator::new();
 
     loop {
         // Prepare data for rendering
-        let current_nodes = get_current_nodes(&config, &path, loop_node_index);
+        let current_nodes = get_current_nodes(&config, &path, loop_node_index, &mut evaluator);
         let sorted_nodes = sort_nodes(&current_nodes);
 
         // Render the TUI
@@ -294,9 +309,9 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                     } else if c == '/' {
                         // Search
                         let options = if path.is_empty() {
-                            get_search_options(&config.keys)
+                            get_search_options(&config.keys, &mut evaluator)
                         } else {
-                            get_search_options(&path)
+                            get_search_options(&path, &mut evaluator)
                         };
 
                         let text_options = format_search_options(&options);

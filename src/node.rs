@@ -17,12 +17,41 @@ pub struct Node {
     pub keys: Vec<Rc<Node>>,
     pub choices: Vec<String>,
     pub input_type: Option<InputType>,
+    pub when: Option<Condition>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub enum InputType {
     Text,
     Number,
+}
+
+#[derive(Debug, Clone)]
+pub enum Condition {
+    FileExists(String),
+    CommandExists(String),
+}
+
+impl<'de> Deserialize<'de> for Condition {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct ConditionHelper {
+            file_exists: Option<String>,
+            command_exists: Option<String>,
+        }
+
+        let helper = ConditionHelper::deserialize(deserializer)?;
+        match (helper.file_exists, helper.command_exists) {
+            (Some(path), None) => Ok(Condition::FileExists(path)),
+            (None, Some(cmd)) => Ok(Condition::CommandExists(cmd)),
+            _ => Err(serde::de::Error::custom(
+                "when must have exactly one of: file_exists, command_exists",
+            )),
+        }
+    }
 }
 
 // Implement custom deserialization for Node
@@ -52,6 +81,7 @@ impl<'de> Deserialize<'de> for Node {
             #[serde(default)]
             choices: Vec<String>,
             input: Option<InputType>,
+            when: Option<Condition>,
         }
 
         let helper = NodeHelper::deserialize(deserializer)?;
@@ -92,6 +122,7 @@ impl<'de> Deserialize<'de> for Node {
             keys: helper.keys.into_iter().map(Rc::new).collect(),
             choices: helper.choices,
             input_type: helper.input,
+            when: helper.when,
         })
     }
 }
@@ -134,6 +165,7 @@ impl Node {
             keys: vec![],
             choices: vec![],
             input_type: None,
+            when: None,
         }))
     }
 
@@ -152,6 +184,7 @@ impl Node {
             keys: vec![],
             choices: vec![],
             input_type: None,
+            when: None,
         })
     }
 }
@@ -174,6 +207,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
             input_type: None,
+            when: None,
         })
     }
 
@@ -199,6 +233,7 @@ mod tests {
             keys: vec![child],
             choices: vec![],
             input_type: None,
+            when: None,
         });
         assert!(!node.is_leaf());
     }
@@ -218,6 +253,7 @@ mod tests {
             keys: vec![],
             choices: vec!["option1".to_string(), "option2".to_string()],
             input_type: None,
+            when: None,
         });
         assert!(!node.is_leaf());
     }
@@ -237,6 +273,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
             input_type: Some(InputType::Text),
+            when: None,
         });
         assert!(!node.is_leaf());
     }
@@ -256,6 +293,7 @@ mod tests {
             keys: vec![],
             choices: vec!["option1".to_string()],
             input_type: None,
+            when: None,
         });
         assert!(node.has_choices());
     }
@@ -293,6 +331,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
             input_type: None,
+            when: None,
         });
         // Can't mutate inside Rc, so we'll use Rc::make_mut to get mutable reference
         let mut node_mut = Rc::try_unwrap(node).unwrap();
@@ -315,6 +354,7 @@ mod tests {
             keys: vec![],
             choices: vec!["branch".to_string(), "commit".to_string()],
             input_type: None,
+            when: None,
         });
 
         let selected = node.with_selection(0);
@@ -342,6 +382,7 @@ mod tests {
             keys: vec![],
             choices: vec!["branch".to_string()],
             input_type: None,
+            when: None,
         });
 
         let selected = node.with_selection(5);
@@ -395,5 +436,45 @@ fleeting: true
             node.is_fleeting,
             "Explicitly fleeting nodes should be fleeting"
         );
+    }
+
+    #[test]
+    fn test_when_file_exists() {
+        let yaml = r#"
+key: g
+value: git
+when:
+  file_exists: Cargo.toml
+"#;
+        let node: Node = serde_yaml::from_str(yaml).unwrap();
+        assert!(matches!(
+            node.when,
+            Some(Condition::FileExists(ref p)) if p == "Cargo.toml"
+        ));
+    }
+
+    #[test]
+    fn test_when_command_exists() {
+        let yaml = r#"
+key: g
+value: git
+when:
+  command_exists: git
+"#;
+        let node: Node = serde_yaml::from_str(yaml).unwrap();
+        assert!(matches!(
+            node.when,
+            Some(Condition::CommandExists(ref c)) if c == "git"
+        ));
+    }
+
+    #[test]
+    fn test_when_none_by_default() {
+        let yaml = r#"
+key: g
+value: git
+"#;
+        let node: Node = serde_yaml::from_str(yaml).unwrap();
+        assert!(node.when.is_none());
     }
 }

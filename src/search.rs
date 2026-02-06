@@ -1,4 +1,4 @@
-use crate::{node::Node, path::compose_command};
+use crate::{condition::ConditionEvaluator, node::Node, path::compose_command};
 use std::rc::Rc;
 
 pub struct SearchNode {
@@ -40,10 +40,22 @@ pub fn format_single_search_option(
     )
 }
 
-pub fn get_search_options(nodes: &[Rc<Node>]) -> Vec<SearchNode> {
-    nodes
+pub fn get_search_options(
+    nodes: &[Rc<Node>],
+    evaluator: &mut ConditionEvaluator,
+) -> Vec<SearchNode> {
+    let visible: Vec<_> = nodes
         .iter()
-        .flat_map(|node| get_search_options_recursively(&node.keys, &[Rc::clone(node)]))
+        .filter(|node| match &node.when {
+            Some(condition) => evaluator.evaluate(condition),
+            None => true,
+        })
+        .cloned()
+        .collect();
+
+    visible
+        .iter()
+        .flat_map(|node| get_search_options_recursively(&node.keys, &[Rc::clone(node)], evaluator))
         .collect()
 }
 
@@ -54,8 +66,21 @@ fn compose_name(path: &[Rc<Node>]) -> String {
         .join(" > ")
 }
 
-pub fn get_search_options_recursively(nodes: &[Rc<Node>], path: &[Rc<Node>]) -> Vec<SearchNode> {
-    nodes
+pub fn get_search_options_recursively(
+    nodes: &[Rc<Node>],
+    path: &[Rc<Node>],
+    evaluator: &mut ConditionEvaluator,
+) -> Vec<SearchNode> {
+    let visible: Vec<_> = nodes
+        .iter()
+        .filter(|node| match &node.when {
+            Some(condition) => evaluator.evaluate(condition),
+            None => true,
+        })
+        .cloned()
+        .collect();
+
+    visible
         .iter()
         .flat_map(|node| {
             let new_path: Vec<Rc<Node>> = path
@@ -73,7 +98,9 @@ pub fn get_search_options_recursively(nodes: &[Rc<Node>], path: &[Rc<Node>]) -> 
             }];
 
             if !node.keys.is_empty() {
-                search_nodes.extend(get_search_options_recursively(&node.keys, &new_path));
+                search_nodes.extend(get_search_options_recursively(
+                    &node.keys, &new_path, evaluator,
+                ));
             }
 
             search_nodes
@@ -99,6 +126,7 @@ mod tests {
             keys: children,
             choices: vec![],
             input_type: None,
+            when: None,
         })
     }
 
@@ -152,8 +180,9 @@ mod tests {
 
     #[test]
     fn test_get_search_options_single_node() {
+        let mut evaluator = ConditionEvaluator::new();
         let node = create_test_node("g", "g", "git", vec![]);
-        let search_nodes = get_search_options(&[node]);
+        let search_nodes = get_search_options(&[node], &mut evaluator);
 
         // get_search_options only returns children, not the node itself
         // A node with no children returns an empty list
@@ -162,10 +191,11 @@ mod tests {
 
     #[test]
     fn test_get_search_options_nested() {
+        let mut evaluator = ConditionEvaluator::new();
         let child = create_test_node("gs", "s", "status", vec![]);
         let parent = create_test_node("g", "g", "git", vec![child]);
 
-        let search_nodes = get_search_options(&[parent]);
+        let search_nodes = get_search_options(&[parent], &mut evaluator);
 
         // Should only have the child (not the parent itself)
         assert_eq!(search_nodes.len(), 1);
@@ -178,11 +208,12 @@ mod tests {
 
     #[test]
     fn test_get_search_options_multiple_children() {
+        let mut evaluator = ConditionEvaluator::new();
         let child1 = create_test_node("gs", "s", "status", vec![]);
         let child2 = create_test_node("gc", "c", "commit", vec![]);
         let parent = create_test_node("g", "g", "git", vec![child1, child2]);
 
-        let search_nodes = get_search_options(&[parent]);
+        let search_nodes = get_search_options(&[parent], &mut evaluator);
 
         // Should have 2 children (not the parent)
         assert_eq!(search_nodes.len(), 2);
@@ -195,11 +226,12 @@ mod tests {
 
     #[test]
     fn test_get_search_options_deeply_nested() {
+        let mut evaluator = ConditionEvaluator::new();
         let grandchild = create_test_node("gca", "a", "--amend", vec![]);
         let child = create_test_node("gc", "c", "commit", vec![grandchild]);
         let parent = create_test_node("g", "g", "git", vec![child]);
 
-        let search_nodes = get_search_options(&[parent]);
+        let search_nodes = get_search_options(&[parent], &mut evaluator);
 
         // Should have child and grandchild (2 total, not the root parent)
         assert_eq!(search_nodes.len(), 2);
@@ -212,10 +244,11 @@ mod tests {
 
     #[test]
     fn test_get_search_options_recursively_builds_path() {
+        let mut evaluator = ConditionEvaluator::new();
         let child = create_test_node("s", "s", "status", vec![]);
         let parent_node = create_test_node("g", "g", "git", vec![]);
 
-        let search_nodes = get_search_options_recursively(&[child], &[parent_node]);
+        let search_nodes = get_search_options_recursively(&[child], &[parent_node], &mut evaluator);
 
         assert_eq!(search_nodes.len(), 1);
         assert_eq!(search_nodes[0].command, "git status");

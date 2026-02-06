@@ -54,6 +54,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
             input_type: None,
+            when: None,
         })
     }
 
@@ -107,6 +108,7 @@ mod tests {
             keys: vec![],
             choices: vec![],
             input_type: None,
+            when: None,
         });
         let path = vec![node1, node2];
         let command = compose_command(&path);
