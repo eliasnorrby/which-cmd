@@ -114,7 +114,11 @@ impl<'a> Input<'a> {
 
         // Footer
         terminal.empty_border_line()?;
-        terminal.write_centered(&format!("󱊷  {}", "cancel".dark_grey()))?;
+        terminal.write_centered(&format!(
+            "󱊷  {}  ^W {}",
+            "cancel".dark_grey(),
+            "delete word".dark_grey()
+        ))?;
 
         terminal.draw_bottom_border()?;
         terminal.flush()?;

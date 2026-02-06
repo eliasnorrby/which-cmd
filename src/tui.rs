@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::constants::{help_text, ERROR_DISPLAY_DURATION_MS, IMMEDIATE_PREFIX};
+use crate::constants::{ERROR_DISPLAY_DURATION_MS, IMMEDIATE_PREFIX};
 use crate::error::{Result, WhichCmdError};
 use crate::fuzzy_select::FuzzySelect;
 use crate::input::Input;
@@ -133,6 +133,19 @@ fn sort_nodes(nodes: &[Rc<Node>]) -> Vec<Rc<Node>> {
     sorted
 }
 
+fn footer_text(path_is_empty: bool) -> String {
+    if path_is_empty {
+        format!("󱊷  {}  󰿟 {}", "close".dark_grey(), "search".dark_grey())
+    } else {
+        format!(
+            "󱊷  {}  󰁮  {}  󰿟 {}",
+            "close".dark_grey(),
+            "back".dark_grey(),
+            "search".dark_grey()
+        )
+    }
+}
+
 /// Render the main TUI interface
 fn render<W: std::io::Write>(
     terminal: &mut Terminal<W>,
@@ -203,7 +216,7 @@ fn render<W: std::io::Write>(
 
     // Footer
     terminal.empty_border_line()?;
-    terminal.write_centered(&help_text())?;
+    terminal.write_centered(&footer_text(path.is_empty()))?;
     terminal.draw_bottom_border()?;
 
     terminal.flush()?;
@@ -328,7 +341,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                         // Invalid key pressed - show error alongside help text
                         terminal.replace_last_line(
                             &format!("{} {}", "Invalid key:".red(), c),
-                            &help_text(),
+                            &footer_text(path.is_empty()),
                         )?;
                         terminal.flush()?;
                         // Display error for configured duration, or until user presses a key
@@ -352,7 +365,7 @@ pub fn run_tui(config: Config, opts: Options) -> Result<String> {
                         // Can't execute an empty command - show error alongside help text
                         terminal.replace_last_line(
                             &format!("{}", "No command to execute".red()),
-                            &help_text(),
+                            &footer_text(true),
                         )?;
                         terminal.flush()?;
                         // Display error for configured duration, or until user presses a key

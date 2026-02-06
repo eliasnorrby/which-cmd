@@ -195,7 +195,11 @@ impl<'a> FuzzySelect<'a> {
         terminal.empty_border_line()?;
 
         // Footer
-        terminal.write_centered(&format!("󱊷  {}", "cancel".dark_grey()))?;
+        terminal.write_centered(&format!(
+            "󱊷  {}  ^W {}",
+            "cancel".dark_grey(),
+            "delete word".dark_grey()
+        ))?;
 
         // Bottom border
         terminal.draw_bottom_border()?;

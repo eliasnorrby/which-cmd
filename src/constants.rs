@@ -10,9 +10,3 @@ pub const DEFAULT_HEIGHT: usize = 10;
 
 /// Duration to display error messages in the TUI (milliseconds)
 pub const ERROR_DISPLAY_DURATION_MS: u64 = 750;
-
-/// Help text displayed in the TUI footer
-pub fn help_text() -> String {
-    use crossterm::style::Stylize;
-    format!("󱊷  {}  󰁮  {}", "close".dark_grey(), "back".dark_grey())
-}
