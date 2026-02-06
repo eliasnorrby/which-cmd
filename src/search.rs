@@ -4,6 +4,7 @@ use std::rc::Rc;
 pub struct SearchNode {
     pub id: String,
     pub command: String,
+    pub name: String,
 }
 
 pub fn format_search_options(nodes: &[SearchNode]) -> Vec<String> {
@@ -12,23 +13,30 @@ pub fn format_search_options(nodes: &[SearchNode]) -> Vec<String> {
         .map(|node| node.command.len())
         .max()
         .unwrap_or(0);
+    let longest_name = nodes.iter().map(|node| node.name.len()).max().unwrap_or(0);
     let textoptions: Vec<String> = nodes
         .iter()
-        .map(|n| format_single_search_option(n, longest_command))
+        .map(|n| format_single_search_option(n, longest_command, longest_name))
         .collect();
     textoptions
 }
 
-pub fn format_single_search_option(node: &SearchNode, command_length: usize) -> String {
+pub fn format_single_search_option(
+    node: &SearchNode,
+    command_length: usize,
+    name_length: usize,
+) -> String {
     format!(
-        "{:<length$}   {}",
+        "{:<cl$}   {:<nl$}   {}",
         &node.command,
+        &node.name,
         node.id
             .chars()
             .map(|c| c.to_string())
             .collect::<Vec<_>>()
             .join(" > "),
-        length = command_length
+        cl = command_length,
+        nl = name_length
     )
 }
 
@@ -37,6 +45,13 @@ pub fn get_search_options(nodes: &[Rc<Node>]) -> Vec<SearchNode> {
         .iter()
         .flat_map(|node| get_search_options_recursively(&node.keys, &[Rc::clone(node)]))
         .collect()
+}
+
+fn compose_name(path: &[Rc<Node>]) -> String {
+    path.iter()
+        .map(|n| n.name.as_str())
+        .collect::<Vec<_>>()
+        .join(" > ")
 }
 
 pub fn get_search_options_recursively(nodes: &[Rc<Node>], path: &[Rc<Node>]) -> Vec<SearchNode> {
@@ -49,10 +64,12 @@ pub fn get_search_options_recursively(nodes: &[Rc<Node>], path: &[Rc<Node>]) -> 
                 .chain(std::iter::once(Rc::clone(node)))
                 .collect();
             let command = compose_command(&new_path);
+            let name = compose_name(&new_path);
 
             let mut search_nodes = vec![SearchNode {
                 id: node.id.clone(),
                 command,
+                name,
             }];
 
             if !node.keys.is_empty() {
@@ -90,10 +107,12 @@ mod tests {
         let search_node = SearchNode {
             id: "gs".to_string(),
             command: "git status".to_string(),
+            name: "git > status".to_string(),
         };
 
-        let formatted = format_single_search_option(&search_node, 15);
+        let formatted = format_single_search_option(&search_node, 15, 15);
         assert!(formatted.contains("git status"));
+        assert!(formatted.contains("git > status"));
         assert!(formatted.contains("g > s"));
     }
 
@@ -103,10 +122,12 @@ mod tests {
             SearchNode {
                 id: "g".to_string(),
                 command: "git".to_string(),
+                name: "git".to_string(),
             },
             SearchNode {
                 id: "gs".to_string(),
                 command: "git status".to_string(),
+                name: "git > status".to_string(),
             },
         ];
 
@@ -117,6 +138,9 @@ mod tests {
         // So "git" should have extra spaces
         assert!(formatted[0].starts_with("git       ")); // "git" padded to 10 chars
         assert!(formatted[1].starts_with("git status"));
+        // Name column should be present
+        assert!(formatted[0].contains("git"));
+        assert!(formatted[1].contains("git > status"));
     }
 
     #[test]
@@ -149,6 +173,7 @@ mod tests {
         // Should be the child
         assert_eq!(search_nodes[0].id, "gs");
         assert_eq!(search_nodes[0].command, "git status");
+        assert_eq!(search_nodes[0].name, "git > status");
     }
 
     #[test]
