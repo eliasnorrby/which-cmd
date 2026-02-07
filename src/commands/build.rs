@@ -6,11 +6,30 @@ use std::process::{Command, Stdio};
 use crate::config::Config;
 use crate::error::Result;
 use crate::options::Options;
+use crate::terminal;
 use crate::tui;
 
 use crate::constants::*;
 
 pub fn build_command(
+    config_path: Option<&Path>,
+    immediate: bool,
+    border: bool,
+    height: usize,
+    exec: bool,
+) -> Result<()> {
+    terminal::enable_raw_mode()?;
+
+    let result = build_command_inner(config_path, immediate, border, height, exec);
+
+    if result.is_err() {
+        let _ = crossterm::terminal::disable_raw_mode();
+    }
+
+    result
+}
+
+fn build_command_inner(
     config_path: Option<&Path>,
     immediate: bool,
     border: bool,

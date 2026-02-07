@@ -9,6 +9,12 @@ use crossterm::{
 
 use std::io::Write;
 
+pub fn enable_raw_mode() -> Result<()> {
+    terminal::enable_raw_mode()
+        .map_err(|e| WhichCmdError::Terminal(format!("Failed to enable raw mode: {}", e)))?;
+    Ok(())
+}
+
 pub struct Terminal<W: Write> {
     writer: W,
     start_row: u16,
@@ -77,8 +83,6 @@ impl<W: Write> Terminal<W> {
             self.start_row = available_rows.saturating_sub(self.total_height);
         }
 
-        terminal::enable_raw_mode()
-            .map_err(|e| WhichCmdError::Terminal(format!("Failed to enable raw mode: {}", e)))?;
         self.writer
             .execute(cursor::Hide)
             .map_err(|e| WhichCmdError::Terminal(format!("Failed to hide cursor: {}", e)))?;
